@@ -67,6 +67,13 @@ Audit connected tools, check authentication status, and trigger on-demand synchr
   <img src="assets/connectors_preview.png" width="100%" alt="Synapse Connectors View" style="border-radius: 12px; border: 1px solid #27272a; box-shadow: 0 8px 24px rgba(0,0,0,0.5);"/>
 </p>
 
+### 4. Interactive OpenAPI & Swagger Endpoints (`/docs`)
+Explore and test all REST routes, SSE streams, sync triggers, and MCP export endpoints in real time:
+
+<p align="center">
+  <img src="assets/openapi_preview.png" width="100%" alt="Synapse OpenAPI Docs" style="border-radius: 12px; border: 1px solid #27272a; box-shadow: 0 8px 24px rgba(0,0,0,0.5);"/>
+</p>
+
 ---
 
 ## 🏗️ Core Architecture
