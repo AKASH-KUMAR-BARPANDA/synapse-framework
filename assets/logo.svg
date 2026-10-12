@@ -1,179 +1,201 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
   <defs>
-    <!-- Background Gradient -->
+    <!-- Background Slate / Obsidian Gradient -->
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0E101D"/>
-      <stop offset="50%" stop-color="#080911"/>
-      <stop offset="100%" stop-color="#040508"/>
+      <stop offset="0%" stop-color="#11131F"/>
+      <stop offset="50%" stop-color="#090A10"/>
+      <stop offset="100%" stop-color="#030406"/>
     </linearGradient>
 
-    <!-- Glass Outer Border Gradient -->
+    <!-- Glass Squircle Border -->
     <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#6366F1" stop-opacity="0.5"/>
-      <stop offset="30%" stop-color="#38BDF8" stop-opacity="0.3"/>
-      <stop offset="70%" stop-color="#A855F7" stop-opacity="0.2"/>
-      <stop offset="100%" stop-color="#1E293B" stop-opacity="0.6"/>
+      <stop offset="0%" stop-color="#818CF8" stop-opacity="0.5"/>
+      <stop offset="35%" stop-color="#38BDF8" stop-opacity="0.25"/>
+      <stop offset="70%" stop-color="#F59E0B" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.05"/>
     </linearGradient>
 
-    <!-- Ambient Core Glow (Centered) -->
-    <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#6366F1" stop-opacity="0.28"/>
-      <stop offset="45%" stop-color="#06B6D4" stop-opacity="0.12"/>
-      <stop offset="75%" stop-color="#A855F7" stop-opacity="0.04"/>
-      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    <!-- Ambient Core Glow -->
+    <radialGradient id="hubAmbient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#818CF8" stop-opacity="0.32"/>
+      <stop offset="45%" stop-color="#6366F1" stop-opacity="0.12"/>
+      <stop offset="85%" stop-color="#000000" stop-opacity="0"/>
     </radialGradient>
 
-    <!-- Synaptic Stream Gradient -->
-    <linearGradient id="streamPrimary" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#00F5FF"/>
+    <!-- Node 3D Gradients -->
+    <!-- Center Purple Hub -->
+    <radialGradient id="gradHub" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#C7D2FE"/>
+      <stop offset="30%" stop-color="#818CF8"/>
+      <stop offset="75%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#4338CA"/>
+    </radialGradient>
+
+    <!-- Top-Left Mint/Green Node -->
+    <radialGradient id="gradMint" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#A7F3D0"/>
+      <stop offset="30%" stop-color="#34D399"/>
+      <stop offset="75%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </radialGradient>
+
+    <!-- Top-Right Amber Nodes -->
+    <radialGradient id="gradAmber" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#FDE68A"/>
+      <stop offset="30%" stop-color="#FBBF24"/>
+      <stop offset="75%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#D97706"/>
+    </radialGradient>
+
+    <!-- Bottom-Left Rose Nodes -->
+    <radialGradient id="gradRose" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#FECDD3"/>
+      <stop offset="30%" stop-color="#FB7185"/>
+      <stop offset="75%" stop-color="#F43F5E"/>
+      <stop offset="100%" stop-color="#BE123C"/>
+    </radialGradient>
+
+    <!-- Bottom-Right Cyan Node -->
+    <radialGradient id="gradCyan" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#BAE6FD"/>
       <stop offset="30%" stop-color="#38BDF8"/>
-      <stop offset="65%" stop-color="#6366F1"/>
-      <stop offset="100%" stop-color="#EC4899"/>
-    </linearGradient>
-
-    <linearGradient id="streamSecondary" x1="100%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#A855F7"/>
-      <stop offset="50%" stop-color="#6366F1" stop-opacity="0.4"/>
-      <stop offset="100%" stop-color="#06B6D4" stop-opacity="0.15"/>
-    </linearGradient>
-
-    <!-- High-res Node Radial Gradients -->
-    <radialGradient id="nodeCyan" cx="35%" cy="35%" r="65%">
-      <stop offset="0%" stop-color="#FFFFFF"/>
-      <stop offset="35%" stop-color="#38BDF8"/>
+      <stop offset="75%" stop-color="#0EA5E9"/>
       <stop offset="100%" stop-color="#0284C7"/>
     </radialGradient>
 
-    <radialGradient id="nodeCore" cx="35%" cy="35%" r="65%">
-      <stop offset="0%" stop-color="#FFFFFF"/>
-      <stop offset="35%" stop-color="#A5B4FC"/>
-      <stop offset="100%" stop-color="#4F46E5"/>
-    </radialGradient>
+    <!-- Edge Gradients -->
+    <linearGradient id="edgeMintAmber" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="100%" stop-color="#FBBF24"/>
+    </linearGradient>
 
-    <radialGradient id="nodePink" cx="35%" cy="35%" r="65%">
-      <stop offset="0%" stop-color="#FFFFFF"/>
-      <stop offset="35%" stop-color="#F472B6"/>
-      <stop offset="100%" stop-color="#DB2777"/>
-    </radialGradient>
+    <linearGradient id="edgeHubMint" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="100%" stop-color="#818CF8"/>
+    </linearGradient>
 
-    <!-- Glow halos without bounding-box clipping -->
-    <radialGradient id="glowHaloCyan" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#00F5FF" stop-opacity="0.5"/>
-      <stop offset="40%" stop-color="#00F5FF" stop-opacity="0.2"/>
-      <stop offset="100%" stop-color="#00F5FF" stop-opacity="0"/>
-    </radialGradient>
+    <linearGradient id="edgeHubAmber" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#818CF8"/>
+      <stop offset="100%" stop-color="#FBBF24"/>
+    </linearGradient>
 
-    <radialGradient id="glowHaloIndigo" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#818CF8" stop-opacity="0.6"/>
-      <stop offset="45%" stop-color="#6366F1" stop-opacity="0.25"/>
-      <stop offset="100%" stop-color="#6366F1" stop-opacity="0"/>
-    </radialGradient>
+    <linearGradient id="edgeHubRose" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FB7185"/>
+      <stop offset="100%" stop-color="#818CF8"/>
+    </linearGradient>
 
-    <radialGradient id="glowHaloPink" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#EC4899" stop-opacity="0.55"/>
-      <stop offset="45%" stop-color="#EC4899" stop-opacity="0.2"/>
-      <stop offset="100%" stop-color="#EC4899" stop-opacity="0"/>
-    </radialGradient>
+    <linearGradient id="edgeHubCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818CF8"/>
+      <stop offset="100%" stop-color="#38BDF8"/>
+    </linearGradient>
+
+    <linearGradient id="edgeRoseCyan" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FB7185"/>
+      <stop offset="100%" stop-color="#38BDF8"/>
+    </linearGradient>
   </defs>
 
-  <!-- Background Squircle Frame -->
+  <!-- Squircle Base Frame -->
   <rect x="8" y="8" width="496" height="496" rx="112" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="2.5"/>
 
-  <!-- Radial Core Ambient Glow -->
-  <circle cx="256" cy="256" r="220" fill="url(#coreGlow)"/>
+  <!-- Subtle Radial Glow Behind Core -->
+  <circle cx="256" cy="256" r="210" fill="url(#hubAmbient)"/>
 
-  <!-- Subtle Neural Precision Grid -->
-  <g opacity="0.12" stroke="#6366F1" stroke-width="1">
-    <circle cx="256" cy="256" r="145" fill="none" stroke-dasharray="4 8"/>
-    <circle cx="256" cy="256" r="88" fill="none" stroke-dasharray="2 6"/>
-    <line x1="256" y1="95" x2="256" y2="417" stroke-dasharray="3 6"/>
-    <line x1="95" y1="256" x2="417" y2="256" stroke-dasharray="3 6"/>
+  <!-- ============================================== -->
+  <!-- CONNECTING EDGES (With Optical Glow Layers)    -->
+  <!-- ============================================== -->
+  <g stroke-linecap="round">
+    <!-- Edge: Top-Left (Mint) -> Top-Right (Amber) -->
+    <line x1="186" y1="188" x2="350" y2="168" stroke="url(#edgeMintAmber)" stroke-width="14" opacity="0.18"/>
+    <line x1="186" y1="188" x2="350" y2="168" stroke="url(#edgeMintAmber)" stroke-width="6.5" opacity="0.9"/>
+
+    <!-- Edge: Center (Hub) -> Top-Left (Mint) -->
+    <line x1="256" y1="256" x2="186" y2="188" stroke="url(#edgeHubMint)" stroke-width="14" opacity="0.18"/>
+    <line x1="256" y1="256" x2="186" y2="188" stroke="url(#edgeHubMint)" stroke-width="6.5" opacity="0.9"/>
+
+    <!-- Edge: Center (Hub) -> Top-Right (Amber) -->
+    <line x1="256" y1="256" x2="350" y2="168" stroke="url(#edgeHubAmber)" stroke-width="14" opacity="0.18"/>
+    <line x1="256" y1="256" x2="350" y2="168" stroke="url(#edgeHubAmber)" stroke-width="6.5" opacity="0.9"/>
+
+    <!-- Edge: Top-Right (Amber) -> Far Top-Right (Amber) -->
+    <line x1="350" y1="168" x2="378" y2="252" stroke="#FBBF24" stroke-width="14" opacity="0.18"/>
+    <line x1="350" y1="168" x2="378" y2="252" stroke="#FBBF24" stroke-width="6.5" opacity="0.9"/>
+
+    <!-- Edge: Center (Hub) -> Bottom-Left (Rose) -->
+    <line x1="256" y1="256" x2="162" y2="344" stroke="url(#edgeHubRose)" stroke-width="14" opacity="0.18"/>
+    <line x1="256" y1="256" x2="162" y2="344" stroke="url(#edgeHubRose)" stroke-width="6.5" opacity="0.9"/>
+
+    <!-- Edge: Bottom-Left (Rose) -> Far Bottom-Left (Rose) -->
+    <line x1="162" y1="344" x2="134" y2="260" stroke="#FB7185" stroke-width="14" opacity="0.18"/>
+    <line x1="162" y1="344" x2="134" y2="260" stroke="#FB7185" stroke-width="6.5" opacity="0.9"/>
+
+    <!-- Edge: Center (Hub) -> Bottom-Right (Cyan) -->
+    <line x1="256" y1="256" x2="326" y2="324" stroke="url(#edgeHubCyan)" stroke-width="14" opacity="0.18"/>
+    <line x1="256" y1="256" x2="326" y2="324" stroke="url(#edgeHubCyan)" stroke-width="6.5" opacity="0.9"/>
+
+    <!-- Edge: Bottom-Left (Rose) -> Bottom-Right (Cyan) -->
+    <line x1="162" y1="344" x2="326" y2="324" stroke="url(#edgeRoseCyan)" stroke-width="14" opacity="0.18"/>
+    <line x1="162" y1="344" x2="326" y2="324" stroke="url(#edgeRoseCyan)" stroke-width="6.5" opacity="0.9"/>
   </g>
 
-  <!-- Secondary Cross-Synapse Bridges -->
-  <path d="M 160 184 C 230 200 282 230 352 248" 
-        fill="none" 
-        stroke="url(#streamSecondary)" 
-        stroke-width="3" 
-        stroke-linecap="round" 
-        stroke-dasharray="6 8"/>
+  <!-- ============================================== -->
+  <!-- GRAPH NODES (Interactive Neural Spheres)       -->
+  <!-- ============================================== -->
 
-  <path d="M 160 328 C 220 310 280 280 348 270" 
-        fill="none" 
-        stroke="url(#streamSecondary)" 
-        stroke-width="3" 
-        stroke-linecap="round" 
-        stroke-dasharray="6 8"/>
+  <!-- 1. Far Bottom-Left Satellite (Rose) -->
+  <g transform="translate(134, 260)">
+    <circle cx="0" cy="0" r="28" fill="#F43F5E" opacity="0.15"/>
+    <circle cx="0" cy="0" r="19" fill="#0C0E17" stroke="#FB7185" stroke-width="2.5"/>
+    <circle cx="0" cy="0" r="15" fill="url(#gradRose)"/>
+    <circle cx="-4" cy="-4" r="4.5" fill="#FFFFFF" opacity="0.6"/>
+  </g>
 
-  <!-- Glowing Underlay Layers for Natural Optical Bloom -->
-  <path d="M 344 148 C 220 136 156 200 176 256 C 196 312 340 300 336 364 C 332 400 292 416 236 408" 
-        fill="none" 
-        stroke="url(#streamPrimary)" 
-        stroke-width="28" 
-        stroke-linecap="round" 
-        stroke-linejoin="round"
-        opacity="0.08"/>
+  <!-- 2. Bottom-Left Hub (Rose) -->
+  <g transform="translate(162, 344)">
+    <circle cx="0" cy="0" r="38" fill="#F43F5E" opacity="0.18"/>
+    <circle cx="0" cy="0" r="26" fill="#0C0E17" stroke="#FB7185" stroke-width="3"/>
+    <circle cx="0" cy="0" r="21" fill="url(#gradRose)"/>
+    <circle cx="-6" cy="-6" r="6" fill="#FFFFFF" opacity="0.65"/>
+  </g>
 
-  <path d="M 344 148 C 220 136 156 200 176 256 C 196 312 340 300 336 364 C 332 400 292 416 236 408" 
-        fill="none" 
-        stroke="url(#streamPrimary)" 
-        stroke-width="18" 
-        stroke-linecap="round" 
-        stroke-linejoin="round"
-        opacity="0.22"/>
+  <!-- 3. Bottom-Right Cluster (Cyan) -->
+  <g transform="translate(326, 324)">
+    <circle cx="0" cy="0" r="38" fill="#0EA5E9" opacity="0.18"/>
+    <circle cx="0" cy="0" r="26" fill="#0C0E17" stroke="#38BDF8" stroke-width="3"/>
+    <circle cx="0" cy="0" r="21" fill="url(#gradCyan)"/>
+    <circle cx="-6" cy="-6" r="6" fill="#FFFFFF" opacity="0.65"/>
+  </g>
 
-  <!-- Crisp Main Synaptic Stream -->
-  <path d="M 344 148 C 220 136 156 200 176 256 C 196 312 340 300 336 364 C 332 400 292 416 236 408" 
-        fill="none" 
-        stroke="url(#streamPrimary)" 
-        stroke-width="9" 
-        stroke-linecap="round" 
-        stroke-linejoin="round"/>
+  <!-- 4. Top-Left Cluster (Mint) -->
+  <g transform="translate(186, 188)">
+    <circle cx="0" cy="0" r="38" fill="#10B981" opacity="0.18"/>
+    <circle cx="0" cy="0" r="26" fill="#0C0E17" stroke="#34D399" stroke-width="3"/>
+    <circle cx="0" cy="0" r="21" fill="url(#gradMint)"/>
+    <circle cx="-6" cy="-6" r="6" fill="#FFFFFF" opacity="0.65"/>
+  </g>
 
-  <!-- High-Energy Luminescent Core Filament -->
-  <path d="M 344 148 C 220 136 156 200 176 256 C 196 312 340 300 336 364 C 332 400 292 416 236 408" 
-        fill="none" 
-        stroke="#FFFFFF" 
-        stroke-width="2.2" 
-        stroke-linecap="round" 
-        stroke-linejoin="round"
-        opacity="0.9"/>
+  <!-- 5. Top-Right Cluster (Amber) -->
+  <g transform="translate(350, 168)">
+    <circle cx="0" cy="0" r="38" fill="#F59E0B" opacity="0.18"/>
+    <circle cx="0" cy="0" r="26" fill="#0C0E17" stroke="#FBBF24" stroke-width="3"/>
+    <circle cx="0" cy="0" r="21" fill="url(#gradAmber)"/>
+    <circle cx="-6" cy="-6" r="6" fill="#FFFFFF" opacity="0.65"/>
+  </g>
 
-  <!-- ========================================== -->
-  <!-- Synaptic Nodes (Interconnected Endpoints)  -->
-  <!-- ========================================== -->
+  <!-- 6. Far Top-Right Satellite (Amber) -->
+  <g transform="translate(378, 252)">
+    <circle cx="0" cy="0" r="28" fill="#F59E0B" opacity="0.15"/>
+    <circle cx="0" cy="0" r="19" fill="#0C0E17" stroke="#FBBF24" stroke-width="2.5"/>
+    <circle cx="0" cy="0" r="15" fill="url(#gradAmber)"/>
+    <circle cx="-4" cy="-4" r="4.5" fill="#FFFFFF" opacity="0.6"/>
+  </g>
 
-  <!-- Top-Right Anchor Node (Tools / MCP) -->
-  <circle cx="344" cy="148" r="38" fill="url(#glowHaloCyan)"/>
-  <circle cx="344" cy="148" r="17" fill="#0A0D18" stroke="#00F5FF" stroke-width="3"/>
-  <circle cx="344" cy="148" r="8.5" fill="url(#nodeCyan)"/>
-  <circle cx="342" cy="146" r="2.5" fill="#FFFFFF" opacity="0.9"/>
-
-  <!-- Top-Left Intermediate Node (RAG & Memory) -->
-  <circle cx="176" cy="204" r="28" fill="url(#glowHaloIndigo)"/>
-  <circle cx="176" cy="204" r="13" fill="#0A0D18" stroke="#818CF8" stroke-width="2.5"/>
-  <circle cx="176" cy="204" r="5.5" fill="#FFFFFF"/>
-
-  <!-- Central Nexus (Orchestration Engine) -->
-  <circle cx="256" cy="256" r="54" fill="url(#glowHaloIndigo)"/>
-  <circle cx="256" cy="256" r="23" fill="#090B16" stroke="#A855F7" stroke-width="3.5"/>
-  <circle cx="256" cy="256" r="12" fill="url(#nodeCore)"/>
-  <circle cx="254" cy="254" r="4" fill="#FFFFFF" opacity="0.95"/>
-
-  <!-- Bottom-Right Intermediate Node (Knowledge Graph) -->
-  <circle cx="336" cy="308" r="28" fill="url(#glowHaloPink)"/>
-  <circle cx="336" cy="308" r="13" fill="#0A0D18" stroke="#F472B6" stroke-width="2.5"/>
-  <circle cx="336" cy="308" r="5.5" fill="#FFFFFF"/>
-
-  <!-- Bottom-Left Anchor Node (Models / Engine) -->
-  <circle cx="236" cy="408" r="38" fill="url(#glowHaloPink)"/>
-  <circle cx="236" cy="408" r="17" fill="#0A0D18" stroke="#EC4899" stroke-width="3"/>
-  <circle cx="236" cy="408" r="8.5" fill="url(#nodePink)"/>
-  <circle cx="234" cy="406" r="2.5" fill="#FFFFFF" opacity="0.9"/>
-
-  <!-- Synaptic Signal Sparks (Active Pulse Packets) -->
-  <circle cx="222" cy="153" r="3.2" fill="#00F5FF" opacity="0.9"/>
-  <circle cx="166" cy="278" r="2.6" fill="#818CF8" opacity="0.85"/>
-  <circle cx="341" cy="356" r="3.2" fill="#F472B6" opacity="0.9"/>
-  <circle cx="286" cy="406" r="2.6" fill="#EC4899" opacity="0.85"/>
+  <!-- 7. CENTRAL NEXUS HUB (Indigo/Purple Master) -->
+  <g transform="translate(256, 256)">
+    <circle cx="0" cy="0" r="54" fill="#6366F1" opacity="0.22"/>
+    <circle cx="0" cy="0" r="38" fill="#0A0C16" stroke="#818CF8" stroke-width="4"/>
+    <circle cx="0" cy="0" r="31" fill="url(#gradHub)"/>
+    <circle cx="-9" cy="-9" r="9" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="-4" cy="-4" r="3" fill="#FFFFFF" opacity="0.95"/>
+  </g>
 </svg>
