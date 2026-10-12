@@ -1,42 +1,45 @@
-# tests/test_hybrid_rag.py
+# tests/test_rag.py
 import sys
+import tempfile
 from pathlib import Path
 
+# Add project root to sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.core.hybrid_rag import HybridRAGEngine
-from app.storage.vector_store import LocalVectorStorage
-from app.storage.graph_store import PersistentGraphStore
+from synapse.rag import HybridRAGEngine
+from synapse.storage import LocalVectorStorage, PersistentGraphStore
 from langchain_core.documents import Document
 
+
 def test_hybrid_retrieval():
-    v_store = LocalVectorStorage()
-    g_store = PersistentGraphStore()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        v_store = LocalVectorStorage(persist_directory=str(Path(tmpdir) / "chroma"))
+        g_store = PersistentGraphStore(filepath=str(Path(tmpdir) / "graph.json"))
 
-    # 1. Seed sample vector chunk
-    v_store.add_documents([
-        Document(
-            page_content="Sarah Chen sent notes stating Synapse Metal acceleration is fully verified.",
-            metadata={"source": "gmail", "subject": "Engine Updates"}
-        )
-    ])
+        # 1. Seed sample vector chunk
+        v_store.add_documents([
+            Document(
+                page_content="Sarah Chen sent notes stating Synapse Metal acceleration is fully verified.",
+                metadata={"source": "gmail", "subject": "Engine Updates"}
+            )
+        ])
 
-    # 2. Seed sample graph relations
-    g_store.add_relation("Sarah Chen", "LEADS", "Synapse Project", source_type="Person", target_type="Project")
-    g_store.add_relation("Synapse Project", "USES", "FastEmbed", source_type="Project", target_type="Tool")
+        # 2. Seed sample graph relations
+        g_store.add_relation("Sarah Chen", "LEADS", "Synapse Project", source_type="Person", target_type="Project")
+        g_store.add_relation("Synapse Project", "USES", "FastEmbed", source_type="Project", target_type="Tool")
 
-    engine = HybridRAGEngine(vector_store=v_store, graph_store=g_store)
+        engine = HybridRAGEngine(vector_store=v_store, graph_store=g_store)
 
-    # 3. Query targeting both vector content and graph entities
-    query = "What is Sarah Chen working on?"
-    result = engine.retrieve_context(query)
+        # 3. Query targeting both vector content and graph entities
+        query = "What is Sarah Chen working on?"
+        result = engine.retrieve_context(query)
 
-    print("=== HYBRID RETRIEVAL REPORT ===")
-    print(f"Entities Detected: {result['entities_detected']}")
-    print(f"Graph Facts Found: {len(result['graph_facts'])}")
-    print(f"Vector Chunks Found: {len(result['vector_documents'])}")
-    print("\n--- Formatted Context for LLM ---")
-    print(result["formatted_context"])
+        assert "entities_detected" in result
+        assert "graph_facts" in result
+        assert "vector_documents" in result
+        assert "formatted_context" in result
+
 
 if __name__ == "__main__":
     test_hybrid_retrieval()
+    print("✓ Hybrid RAG tests passed!")

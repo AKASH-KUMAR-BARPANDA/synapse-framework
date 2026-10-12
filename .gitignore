@@ -1,40 +1,48 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
-
-# Virtual environments
-.venv
-src
-
-# Local configuration & secrets
-.env
-.env.local
-
-# Local application persistence (ChromaDB files & Graph json)
-data/
-
-# Python caching & bytecode
+# Python-generated files & byte-code
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
 
-# IDE & Editor specific settings
-.vscode/
-.idea/
-.DS_Store
+# Distribution / packaging
+build/
+dist/
+wheels/
+*.egg-info/
+.eggs/
 
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
 
-# OAuth secrets and active user tokens
+# Testing & Linting caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local configuration & secrets
+.env
+.env.*
+!.env.example
 credentials.json
 token.json
-connectors/credentials.json
-connectors/token.json
 
-# Local binary databases and graphs
-data/chroma_db/
-data/graph.json
-data/*.html
+# Local application persistence & outputs
+data/
+*.sqlite
+*.sqlite3
+*.db
+
+# macOS & IDEs
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.vscode/
+.idea/
+*.swp
+*.swo
+

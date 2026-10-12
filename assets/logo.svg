@@ -1,0 +1,179 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0E101D"/>
+      <stop offset="50%" stop-color="#080911"/>
+      <stop offset="100%" stop-color="#040508"/>
+    </linearGradient>
+
+    <!-- Glass Outer Border Gradient -->
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1" stop-opacity="0.5"/>
+      <stop offset="30%" stop-color="#38BDF8" stop-opacity="0.3"/>
+      <stop offset="70%" stop-color="#A855F7" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#1E293B" stop-opacity="0.6"/>
+    </linearGradient>
+
+    <!-- Ambient Core Glow (Centered) -->
+    <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#6366F1" stop-opacity="0.28"/>
+      <stop offset="45%" stop-color="#06B6D4" stop-opacity="0.12"/>
+      <stop offset="75%" stop-color="#A855F7" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Synaptic Stream Gradient -->
+    <linearGradient id="streamPrimary" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F5FF"/>
+      <stop offset="30%" stop-color="#38BDF8"/>
+      <stop offset="65%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#EC4899"/>
+    </linearGradient>
+
+    <linearGradient id="streamSecondary" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#A855F7"/>
+      <stop offset="50%" stop-color="#6366F1" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#06B6D4" stop-opacity="0.15"/>
+    </linearGradient>
+
+    <!-- High-res Node Radial Gradients -->
+    <radialGradient id="nodeCyan" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="35%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </radialGradient>
+
+    <radialGradient id="nodeCore" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="35%" stop-color="#A5B4FC"/>
+      <stop offset="100%" stop-color="#4F46E5"/>
+    </radialGradient>
+
+    <radialGradient id="nodePink" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="35%" stop-color="#F472B6"/>
+      <stop offset="100%" stop-color="#DB2777"/>
+    </radialGradient>
+
+    <!-- Glow halos without bounding-box clipping -->
+    <radialGradient id="glowHaloCyan" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00F5FF" stop-opacity="0.5"/>
+      <stop offset="40%" stop-color="#00F5FF" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#00F5FF" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="glowHaloIndigo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#818CF8" stop-opacity="0.6"/>
+      <stop offset="45%" stop-color="#6366F1" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#6366F1" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="glowHaloPink" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#EC4899" stop-opacity="0.55"/>
+      <stop offset="45%" stop-color="#EC4899" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#EC4899" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background Squircle Frame -->
+  <rect x="8" y="8" width="496" height="496" rx="112" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="2.5"/>
+
+  <!-- Radial Core Ambient Glow -->
+  <circle cx="256" cy="256" r="220" fill="url(#coreGlow)"/>
+
+  <!-- Subtle Neural Precision Grid -->
+  <g opacity="0.12" stroke="#6366F1" stroke-width="1">
+    <circle cx="256" cy="256" r="145" fill="none" stroke-dasharray="4 8"/>
+    <circle cx="256" cy="256" r="88" fill="none" stroke-dasharray="2 6"/>
+    <line x1="256" y1="95" x2="256" y2="417" stroke-dasharray="3 6"/>
+    <line x1="95" y1="256" x2="417" y2="256" stroke-dasharray="3 6"/>
+  </g>
+
+  <!-- Secondary Cross-Synapse Bridges -->
+  <path d="M 160 184 C 230 200 282 230 352 248" 
+        fill="none" 
+        stroke="url(#streamSecondary)" 
+        stroke-width="3" 
+        stroke-linecap="round" 
+        stroke-dasharray="6 8"/>
+
+  <path d="M 160 328 C 220 310 280 280 348 270" 
+        fill="none" 
+        stroke="url(#streamSecondary)" 
+        stroke-width="3" 
+        stroke-linecap="round" 
+        stroke-dasharray="6 8"/>
+
+  <!-- Glowing Underlay Layers for Natural Optical Bloom -->
+  <path d="M 344 148 C 220 136 156 200 176 256 C 196 312 340 300 336 364 C 332 400 292 416 236 408" 
+        fill="none" 
+        stroke="url(#streamPrimary)" 
+        stroke-width="28" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        opacity="0.08"/>
+
+  <path d="M 344 148 C 220 136 156 200 176 256 C 196 312 340 300 336 364 C 332 400 292 416 236 408" 
+        fill="none" 
+        stroke="url(#streamPrimary)" 
+        stroke-width="18" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        opacity="0.22"/>
+
+  <!-- Crisp Main Synaptic Stream -->
+  <path d="M 344 148 C 220 136 156 200 176 256 C 196 312 340 300 336 364 C 332 400 292 416 236 408" 
+        fill="none" 
+        stroke="url(#streamPrimary)" 
+        stroke-width="9" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"/>
+
+  <!-- High-Energy Luminescent Core Filament -->
+  <path d="M 344 148 C 220 136 156 200 176 256 C 196 312 340 300 336 364 C 332 400 292 416 236 408" 
+        fill="none" 
+        stroke="#FFFFFF" 
+        stroke-width="2.2" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        opacity="0.9"/>
+
+  <!-- ========================================== -->
+  <!-- Synaptic Nodes (Interconnected Endpoints)  -->
+  <!-- ========================================== -->
+
+  <!-- Top-Right Anchor Node (Tools / MCP) -->
+  <circle cx="344" cy="148" r="38" fill="url(#glowHaloCyan)"/>
+  <circle cx="344" cy="148" r="17" fill="#0A0D18" stroke="#00F5FF" stroke-width="3"/>
+  <circle cx="344" cy="148" r="8.5" fill="url(#nodeCyan)"/>
+  <circle cx="342" cy="146" r="2.5" fill="#FFFFFF" opacity="0.9"/>
+
+  <!-- Top-Left Intermediate Node (RAG & Memory) -->
+  <circle cx="176" cy="204" r="28" fill="url(#glowHaloIndigo)"/>
+  <circle cx="176" cy="204" r="13" fill="#0A0D18" stroke="#818CF8" stroke-width="2.5"/>
+  <circle cx="176" cy="204" r="5.5" fill="#FFFFFF"/>
+
+  <!-- Central Nexus (Orchestration Engine) -->
+  <circle cx="256" cy="256" r="54" fill="url(#glowHaloIndigo)"/>
+  <circle cx="256" cy="256" r="23" fill="#090B16" stroke="#A855F7" stroke-width="3.5"/>
+  <circle cx="256" cy="256" r="12" fill="url(#nodeCore)"/>
+  <circle cx="254" cy="254" r="4" fill="#FFFFFF" opacity="0.95"/>
+
+  <!-- Bottom-Right Intermediate Node (Knowledge Graph) -->
+  <circle cx="336" cy="308" r="28" fill="url(#glowHaloPink)"/>
+  <circle cx="336" cy="308" r="13" fill="#0A0D18" stroke="#F472B6" stroke-width="2.5"/>
+  <circle cx="336" cy="308" r="5.5" fill="#FFFFFF"/>
+
+  <!-- Bottom-Left Anchor Node (Models / Engine) -->
+  <circle cx="236" cy="408" r="38" fill="url(#glowHaloPink)"/>
+  <circle cx="236" cy="408" r="17" fill="#0A0D18" stroke="#EC4899" stroke-width="3"/>
+  <circle cx="236" cy="408" r="8.5" fill="url(#nodePink)"/>
+  <circle cx="234" cy="406" r="2.5" fill="#FFFFFF" opacity="0.9"/>
+
+  <!-- Synaptic Signal Sparks (Active Pulse Packets) -->
+  <circle cx="222" cy="153" r="3.2" fill="#00F5FF" opacity="0.9"/>
+  <circle cx="166" cy="278" r="2.6" fill="#818CF8" opacity="0.85"/>
+  <circle cx="341" cy="356" r="3.2" fill="#F472B6" opacity="0.9"/>
+  <circle cx="286" cy="406" r="2.6" fill="#EC4899" opacity="0.85"/>
+</svg>

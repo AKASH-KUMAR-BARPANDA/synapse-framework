@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.core.chunker import DocumentChunker
+from synapse.rag.chunker import DocumentChunker
 
 def test_chunking():
     chunker = DocumentChunker(chunk_size=160, chunk_overlap=30)
@@ -14,10 +14,10 @@ def test_chunking():
         "id": "msg_8912",
         "subject": "Synapse Architecture Review",
         "from": "sarah@tech.org",
-        "to": "akash@synapse.ai",
+        "to": "dev@synapse.ai",
         "date": "2026-10-08",
         "body": (
-            "Hey Akash, I reviewed the knowledge graph implementation. "
+            "Hey team, I reviewed the knowledge graph implementation. "
             "We should ensure the MCP client can fetch live email threads "
             "and extract triples in the background without blocking the UI thread. "
             "Let us sync tomorrow at 10 AM to finalize the Ollama prompt routing."

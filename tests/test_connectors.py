@@ -1,38 +1,45 @@
 # tests/test_connectors.py
 import sys
-import asyncio
 from pathlib import Path
 
 # Add project root to sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.core.mcp_client import mcp_manager
+from synapse.connectors import makeconnectors, GmailConnectors, GooglePhotosConnectors, NotionConnectors
+from synapse.oauth import GoogleOAuthService
 
 
-async def test_gmail_connector():
-    print("[1] Discovering tools on Gmail MCP server...")
-    try:
-        tools = await mcp_manager.list_tools("gmail")
-        print("Available Tools:")
-        for t in tools:
-            print(f" - {t['name']}: {t.get('description', 'No description')}")
-    except Exception as e:
-        print(f"Failed to list tools: {e}")
-        return
+def test_custom_connector():
+    def add_numbers(a: int, b: int) -> int:
+        """Adds two integers together."""
+        return a + b
 
-    print("\n[2] Calling 'search_emails' via MCP client (stdio)...")
-    try:
-        # Note: If OAuth token is not configured yet, this will exercise the call path
-        emails = await mcp_manager.call_tool(
-            server_name="gmail",
-            tool_name="search_emails",
-            arguments={"query": "label:INBOX", "max_results": 2}
-        )
-        print(f"Result count: {len(emails) if isinstance(emails, list) else 1}")
-        print("Sample output:", emails)
-    except Exception as e:
-        print(f"Execution notice: {e}")
+    def greet(name: str = "World") -> str:
+        """Returns a greeting string."""
+        return f"Hello, {name}!"
+
+    conn = makeconnectors(name="math_service", tools=[add_numbers, greet])
+    assert conn.name == "math_service"
+    assert len(conn.tools) == 2
+    assert "add_numbers" in conn.tools
+    assert "greet" in conn.tools
+
+
+def test_builtin_connectors_instantiation():
+    oauth = GoogleOAuthService(
+        credentials_path="test_credentials.json",
+        token_path="test_token.json",
+    )
+    gmail = GmailConnectors(oauth_service=oauth)
+    photos = GooglePhotosConnectors(oauth_service=oauth)
+    notion = NotionConnectors(api_key="test_notion_key")
+
+    assert gmail.name == "gmail"
+    assert photos.name == "photos"
+    assert notion.name == "notion"
 
 
 if __name__ == "__main__":
-    asyncio.run(test_gmail_connector())
+    test_custom_connector()
+    test_builtin_connectors_instantiation()
+    print("✓ All connector tests passed!")

@@ -1,9 +1,42 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "synapse"
-version = "0.1.0"
-description = "Add your description here"
+name = "synapse-framework"
+version = "0.2.4"
+description = "Modular Multi-MCP & Hybrid RAG AI Application Framework"
 readme = "README.md"
-requires-python = ">=3.13"
+license = "MIT"
+authors = [
+    {name = "Synapse Contributors"}
+]
+requires-python = ">=3.10"
+keywords = [
+    "mcp",
+    "rag",
+    "agents",
+    "knowledge-graph",
+    "fastapi",
+    "claude",
+    "cursor",
+    "ollama",
+    "chromadb",
+    "qdrant",
+    "networkx",
+    "ai",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
 dependencies = [
     "chromadb>=1.5.9",
     "fastapi[standard]>=0.142.2",
@@ -21,11 +54,41 @@ dependencies = [
     "mcp>=2.3.0",
     "networkx>=3.7",
     "pydantic>=2.13.5",
+    "uvicorn>=0.30.0",
 ]
 
-[project.scripts]
-synapse = "synapse:main"
+[project.optional-dependencies]
+qdrant = [
+    "qdrant-client>=1.12.0",
+]
+all = [
+    "qdrant-client>=1.12.0",
+]
+dev = [
+    "bandit>=1.9.0",
+    "build>=1.2.0",
+    "pip-audit>=2.8.0",
+    "pytest>=8.0.0",
+    "twine>=6.0.0",
+]
 
-[build-system]
-requires = ["uv_build>=0.12.15,<0.13.0"]
-build-backend = "uv_build"
+[project.urls]
+Homepage = "https://github.com/akash/synapse-framework"
+Repository = "https://github.com/akash/synapse-framework"
+Issues = "https://github.com/akash/synapse-framework/issues"
+
+[project.scripts]
+synapse = "synapse.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["synapse", "synapse.*"]
+exclude = ["tests*", "assets*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = ["E501"]
+
