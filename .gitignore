@@ -1,0 +1,40 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+src
+
+# Local configuration & secrets
+.env
+.env.local
+
+# Local application persistence (ChromaDB files & Graph json)
+data/
+
+# Python caching & bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE & Editor specific settings
+.vscode/
+.idea/
+.DS_Store
+
+
+# OAuth secrets and active user tokens
+credentials.json
+token.json
+connectors/credentials.json
+connectors/token.json
+
+# Local binary databases and graphs
+data/chroma_db/
+data/graph.json
+data/*.html
