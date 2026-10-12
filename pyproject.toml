@@ -73,9 +73,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/akash/synapse-framework"
-Repository = "https://github.com/akash/synapse-framework"
-Issues = "https://github.com/akash/synapse-framework/issues"
+Homepage = "https://github.com/AKASH-KUMAR-BARPANDA/synapse-framework"
+Repository = "https://github.com/AKASH-KUMAR-BARPANDA/synapse-framework"
+Issues = "https://github.com/AKASH-KUMAR-BARPANDA/synapse-framework/issues"
 
 [project.scripts]
 synapse = "synapse.cli:main"

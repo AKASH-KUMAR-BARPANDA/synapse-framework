@@ -11,8 +11,8 @@
 <p align="center">
   <a href="https://pypi.org/project/synapse-framework/"><img src="https://img.shields.io/pypi/v/synapse-framework.svg?color=6366F1&label=PyPI" alt="PyPI version"/></a>
   <a href="https://pypi.org/project/synapse-framework/"><img src="https://img.shields.io/pypi/pyversions/synapse-framework.svg?color=06B6D4" alt="Python Versions"/></a>
-  <a href="https://github.com/akash/synapse-framework/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"/></a>
-  <a href="https://github.com/akash/synapse-framework/actions"><img src="https://img.shields.io/badge/tests-23%20passing-success.svg?color=10B981" alt="Tests"/></a>
+  <a href="https://github.com/AKASH-KUMAR-BARPANDA/synapse-framework/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"/></a>
+  <a href="https://github.com/AKASH-KUMAR-BARPANDA/synapse-framework/actions"><img src="https://img.shields.io/badge/tests-23%20passing-success.svg?color=10B981" alt="Tests"/></a>
   <a href="https://github.com/PyCQA/bandit"><img src="https://img.shields.io/badge/security-bandit%20passed-success.svg?color=10B981" alt="Bandit Security"/></a>
 </p>
 
