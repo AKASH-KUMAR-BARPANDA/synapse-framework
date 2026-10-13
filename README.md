@@ -17,18 +17,20 @@
 </p>
 
 <p align="center">
-  <a href="#-quickstart">Quickstart</a> •
-  <a href="#-key-features">Features</a> •
+  <a href="#-10-line-quickstart">10-Line Demo</a> •
+  <a href="#-complete-ai-backend-example">Enterprise App</a> •
+  <a href="#-apprun-vs-connrun_mcp">app.run vs conn.run_mcp</a> •
+  <a href="#-standalone-mcp-tool-server-connrun_mcp">Standalone MCP</a> •
   <a href="#-interactive-inspector--3d-graph">Inspector & Graph</a> •
-  <a href="#-core-architecture">Architecture</a> •
   <a href="#-api-endpoint-reference">API Endpoints</a> •
-  <a href="#-claude-desktop--cursor-export">MCP Export</a> •
   <a href="#-license">License</a>
 </p>
 
 ---
 
 **Synapse** is an open-source, local-first Python framework for developing autonomous AI assistants, multi-tool agents, and intelligent backend services. It unifies **Model Context Protocol (MCP)** tool execution, **Hybrid RAG** (vector embeddings combined with directed knowledge graphs), pluggable inference providers (**Ollama**, **Google Gemini**, **OpenAI**), and a real-time developer inspector with an interactive 3D WebGL knowledge visualizer.
+
+> **Tip**: Synapse supports both lowercase (`from synapse import ...`) and PascalCase (`from Synapse import ...`) imports for maximum developer convenience.
 
 ---
 
@@ -39,7 +41,7 @@
 - 🧠 **Model Agnostic Inference** — Native support for offline local LLMs via **Ollama** (Qwen 2.5, Llama 3, Mistral) and frontier cloud models (**Google Gemini**, **OpenAI**, Groq, vLLM) with zero lock-in.
 - 📊 **Real-Time Interactive Inspector** — Built-in dashboard at `/inspector` to test prompts, monitor live tool execution traces, inspect retrieved vector chunks, and explore relation facts.
 - 🌐 **3D WebGL Knowledge Graph** — Standalone interactive visualizer at `/graph/export` featuring physics simulations, entity clustering, and real-time relation navigation.
-- 📦 **One-Click MCP Server Export** — Expose your application's tools to Claude Desktop, Cursor, or LibreChat with `synapse export-mcp`.
+- 📦 **One-Click MCP Server Export** — Run tools as standalone MCP servers (`conn.run_mcp()`) or export to Claude Desktop, Cursor, and LibreChat (`synapse export-mcp`).
 - 🛡️ **Zero Vulnerabilities & High Test Coverage** — Clean 100% Bandit security audit, full type annotations, and modern Python 3.10+ async architecture.
 
 ---
@@ -149,48 +151,159 @@ pip install "synapse-framework[all]"
 
 ---
 
-## 🚀 60-Second Quickstart
+## 🚀 10-Line Quickstart
 
-Create an intelligent assistant with custom Python tools, local Ollama inference, and a live web inspector in under 25 lines of code:
+Get an AI assistant with custom tools running locally in just 10 lines of code:
 
 ```python
-from typing import Dict, Any
-from synapse import BaseApp
-from synapse.models import Ollama
-from synapse.connectors import makeconnectors
+from synapse import BaseApp, makeconnectors
+from synapse.models import ollama
 
-# 1. Define custom tools with clear docstrings
-def search_product_catalog(query: str, category: str = "all") -> Dict[str, Any]:
-    """Searches the product database and inventory across warehouses."""
-    return {"results": [{"id": "SKU-992", "name": "Neuro-Link Adapter", "price": 149.0, "stock": 42}]}
+def get_crypto_price(symbol: str) -> dict:
+    """Returns the latest market price for a given cryptocurrency."""
+    return {"symbol": symbol.upper(), "price_usd": 64200.0}
 
-def calculate_shipping(weight_kg: float, international: bool = False) -> Dict[str, Any]:
-    """Calculates shipping cost based on package weight and destination."""
-    rate = 14.5 if international else 5.5
-    return {"cost_usd": round(weight_kg * rate, 2), "carrier": "Express Air"}
+market_tools = makeconnectors(name="market", tools=[get_crypto_price])
+app = BaseApp(title="CryptoBot", model=ollama("qwen2.5:0.5b"), connectors=[market_tools])
 
-# 2. Package tools into an MCP connector
-inventory_connector = makeconnectors(
-    name="inventory_service",
-    tools=[search_product_catalog, calculate_shipping],
-)
+if __name__ == "__main__":
+    app.run(port=8000)
+```
 
-# 3. Initialize Synapse application
+Now open:
+- 📊 **Inspector**: [`http://127.0.0.1:8000/inspector`](http://127.0.0.1:8000/inspector)
+- 📖 **API Docs**: [`http://127.0.0.1:8000/docs`](http://127.0.0.1:8000/docs)
+
+---
+
+## 💼 Complete AI Backend Example
+
+`BaseApp` gives you a production-ready, full-featured AI backend combining local inference, OAuth connectors, vector storage, and knowledge graphs:
+
+```python
+from Synapse import BaseApp
+from Synapse.models import ollama
+from Synapse.connectors import GmailConnectors, NotionConnectors
+from Synapse.resource import Resource
+
+# BaseApp gives you a complete, ready-to-use AI backend:
 app = BaseApp(
-    title="Logistics Assistant",
-    model=Ollama(model="qwen2.5:0.5b", base_url="http://localhost:11434"),
-    connectors=[inventory_connector],
-    visualize_graph=True,
+    title="Company Intelligence Assistant",
+    model=ollama(model="qwen2.5:0.5b"),                 # The brain (local or cloud)
+    connectors=[GmailConnectors(), NotionConnectors()], # The tools (OAuth & Multi-MCP)
+    resource=Resource("docs").add("data/faq.txt"),      # The knowledge base (Vector + Graph)
 )
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=8000)
+    app.run()  # Boots FastAPI + Web Inspector + SSE streaming + Vector DB + Graph
 ```
 
-Open your browser to start interacting:
-- 📊 **Web Inspector**: [`http://127.0.0.1:8000/inspector`](http://127.0.0.1:8000/inspector)
-- 🕸️ **3D Knowledge Graph**: [`http://127.0.0.1:8000/graph/export`](http://127.0.0.1:8000/graph/export)
-- 📖 **Interactive OpenAPI Docs**: [`http://127.0.0.1:8000/docs`](http://127.0.0.1:8000/docs)
+When you call `app.run()`, Synapse immediately spins up:
+1. **FastAPI REST & SSE Server** on `http://127.0.0.1:8000`
+2. **Interactive Web Inspector** at `/inspector` with live tool execution traces
+3. **3D WebGL Knowledge Graph** at `/graph/export`
+4. **Local Vector Database** (ChromaDB) with indexed resources
+5. **Streaming Chat Endpoint** at `POST /chat` with automatic RAG grounding
+
+---
+
+## ⚖️ `app.run()` vs `conn.run_mcp()`
+
+Synapse supports two fundamental deployment paradigms depending on your target architecture:
+
+| Feature | `app.run()` (Full AI Application) | `conn.run_mcp()` (Standalone Tool Server) |
+| :--- | :--- | :--- |
+| **Primary Goal** | Complete AI assistant service with brain & storage | Expose custom Python tools to Claude Desktop / Cursor |
+| **Brain / LLM** | Orchestrates local Ollama, Gemini, or OpenAI | None needed (Host client like Claude acts as the brain) |
+| **Transport** | HTTP REST & Server-Sent Events (SSE) | Standard I/O (`stdio`) or SSE via FastMCP |
+| **Developer UI** | Built-in Web Inspector (`/inspector`) & 3D Graph | Client's own native interface |
+| **Knowledge Base** | Ingests documents into Hybrid RAG | Tools only (or resources attached to MCP) |
+| **How to run** | `app.run(host="127.0.0.1", port=8000)` | `conn.run_mcp(transport="stdio")` |
+
+---
+
+## 🔌 Standalone MCP Tool Server (`conn.run_mcp()`)
+
+If you **only want to export tools** as a dedicated Model Context Protocol (MCP) server—without running a full web server or LLM—use `conn.run_mcp()`:
+
+```python
+from synapse.connectors import makeconnectors
+
+def search_database(query: str, limit: int = 5) -> dict:
+    """Searches internal database for relevant records matching query."""
+    return {"results": [{"id": 101, "record": f"Match for {query}", "score": 0.94}]}
+
+def calculate_discount(price: float, percentage: float) -> dict:
+    """Calculates discounted price and tax."""
+    return {"discounted_price": round(price * (1 - percentage / 100), 2)}
+
+# Create standalone connector (supports list or dict of tools)
+conn = makeconnectors(
+    name="my_tools",
+    tools={"search": search_database, "discount": calculate_discount},
+)
+
+if __name__ == "__main__":
+    # Boots as a standard FastMCP server over stdio
+    conn.run_mcp()
+```
+
+### Connect to Claude Desktop or Cursor
+In your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "my_tools": {
+      "command": "python",
+      "args": ["path/to/your_mcp_script.py"]
+    }
+  }
+}
+```
+
+### Prebuilt OAuth Productivity Connectors
+Synapse includes managed OAuth 2.0 lifecycle helpers for standard productivity apps:
+
+```python
+from synapse.oauth import GoogleOAuthService
+from synapse.connectors import GmailConnectors, GooglePhotosConnectors, NotionConnectors
+
+oauth = GoogleOAuthService(
+    credentials_path="credentials.json",
+    token_path="token.json",
+)
+
+gmail = GmailConnectors(oauth_service=oauth)
+photos = GooglePhotosConnectors(oauth_service=oauth)
+notion = NotionConnectors(api_key="secret_notion_key")
+```
+
+---
+
+## 📚 Knowledge Base & Ingestion (`Resource`)
+
+Ingest text, single files, or entire directories into the Hybrid RAG engine with fluid method chaining:
+
+```python
+from pathlib import Path
+from synapse.resource import Resource
+
+# 1. Create a named resource collection
+docs = Resource("company_knowledge")
+
+# 2. Add files, raw text, or entire directories
+docs.add("data/faq.txt")
+docs.add("README.md", "docs/architecture.md")
+docs.add("Company founded in 2024 specializing in agentic AI.", title="Company History")
+docs.add(Path("docs/"))
+
+# 3. Pass to BaseApp for automatic vector embedding and knowledge graph linking
+app = BaseApp(
+    model=ollama("qwen2.5:0.5b"),
+    resource=docs,
+)
+```
 
 ---
 
@@ -229,43 +342,6 @@ model = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
     model="gpt-4o-mini",
 )
-```
-
----
-
-## 🔌 Connectors & Custom Tools
-
-### Custom Tools via `makeconnectors`
-Transform any Python functions into a tool connector ready for MCP client consumption:
-
-```python
-from synapse.connectors import makeconnectors
-
-def query_financial_metrics(quarter: str = "Q3") -> dict:
-    """Returns quarterly revenue, operating expenses, and net profit margin."""
-    return {"revenue": 420000, "expenses": 180000, "margin": "57.1%"}
-
-finance_connector = makeconnectors(
-    name="finance_analytics",
-    tools=[query_financial_metrics],
-)
-```
-
-### Prebuilt OAuth Productivity Connectors
-Synapse includes managed OAuth 2.0 lifecycle helpers:
-
-```python
-from synapse.oauth import GoogleOAuthService
-from synapse.connectors import GmailConnectors, GooglePhotosConnectors, NotionConnectors
-
-oauth = GoogleOAuthService(
-    credentials_path="credentials.json",
-    token_path="token.json",
-)
-
-gmail = GmailConnectors(oauth_service=oauth)
-photos = GooglePhotosConnectors(oauth_service=oauth)
-notion = NotionConnectors(api_key="secret_notion_key")
 ```
 
 ---
@@ -320,7 +396,7 @@ Synapse automatically mounts standard REST, Server-Sent Events (SSE), and docume
 
 ## 🛠️ Claude Desktop & Cursor Export
 
-Export your application tools directly to Claude Desktop or Cursor:
+Export your application tools directly to Claude Desktop or Cursor via CLI:
 
 ```bash
 # Export config file
