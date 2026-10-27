@@ -1,4 +1,5 @@
 # tests/test_connectors.py
+import asyncio
 import sys
 from pathlib import Path
 
@@ -23,6 +24,32 @@ def test_custom_connector():
     assert len(conn.tools) == 2
     assert "add_numbers" in conn.tools
     assert "greet" in conn.tools
+    assert conn.default_tool == "add_numbers"
+
+
+def test_single_callable_and_param_pruning():
+    """Verifies single function tool acceptance, argument pruning, and schema caching."""
+    def multiply(x: int, y: int) -> int:
+        """Multiplies x and y."""
+        return x * y
+
+    # 1. Single function passed directly to tools
+    conn = makeconnectors(name="calc", tools=multiply)
+    assert len(conn.tools) == 1
+    assert "multiply" in conn.tools
+    assert conn.default_tool == "multiply"
+
+    async def _run():
+        # 2. Schema caching verification
+        tools_1 = await conn.list_tools()
+        tools_2 = await conn.list_tools()
+        assert tools_1 is tools_2  # Same cached list reference
+
+        # 3. Parameter pruning: calling with hallucinated arguments must NOT crash
+        res = await conn.call_tool("multiply", {"x": 6, "y": 7, "hallucinated_param": "ignore_me"})
+        assert res == 42
+
+    asyncio.run(_run())
 
 
 def test_builtin_connectors_instantiation():

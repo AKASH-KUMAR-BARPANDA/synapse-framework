@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import time
@@ -15,6 +16,7 @@ from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from langchain_core.documents import Document
 from pydantic import BaseModel, Field
 
 from synapse.config import DEFAULT_DATA_DIR
@@ -323,12 +325,13 @@ class BaseApp:
         live_chunks: list[dict[str, Any]] = []
         live_triples: list[str] = []
 
+        all_docs: list[Document] = []
         for idx, rec in enumerate(records, start=1):
-            # 1. Chunk and upsert to vector store
+            # 1. Collect chunks for batch vector upsert
             if self.vector_store is not None:
                 docs = conn.chunk_record(tool_name, rec)
                 if docs:
-                    self.vector_store.add_documents(docs)
+                    all_docs.extend(docs)
 
             # 2. Format context and graph triple
             summary_line, chunk_meta, triple = conn.format_record(tool_name, rec, index=idx)
@@ -336,7 +339,7 @@ class BaseApp:
             live_chunks.append(chunk_meta)
             live_triples.append(triple)
 
-            # 3. Add triple to knowledge graph
+            # 3. Add triple to knowledge graph (atomic batch without saving on each item)
             if self.graph_store is not None:
                 parts = [p.strip() for p in triple.split("->")]
                 if len(parts) == 3:
@@ -346,6 +349,7 @@ class BaseApp:
                         relation=rel,
                         target=tgt,
                         metadata={"source": connector_name},
+                        auto_save=False,
                     )
 
             # 4. Optional deep LLM triple extraction
@@ -360,7 +364,19 @@ class BaseApp:
                             target=t["target"],
                             source_type=t.get("source_type", "Default"),
                             target_type=t.get("target_type", "Default"),
+                            auto_save=False,
                         )
+
+        # Single atomic batch upsert to vector store
+        if self.vector_store is not None and all_docs:
+            self.vector_store.add_documents(all_docs)
+
+        # Single atomic graph persistence save
+        if self.graph_store is not None and hasattr(self.graph_store, "save"):
+            try:
+                self.graph_store.save()
+            except Exception:
+                pass  # nosec B110
 
         try:
             if self.vector_store is not None:
@@ -416,6 +432,7 @@ class BaseApp:
         candidate_tools: list[dict[str, Any]] = []
         fallback_calls: list[dict[str, Any]] = []
         unauthenticated_connectors: list[str] = []
+        matching_active_conns: list[BaseConnector] = []
 
         for conn in self._connectors.values():
             if not conn.matches_intent(user_message):
@@ -423,22 +440,29 @@ class BaseApp:
             if not conn.is_authenticated():
                 unauthenticated_connectors.append(conn.name)
                 continue
+            matching_active_conns.append(conn)
 
-            tools = await conn.list_tools()
-            for t in tools:
-                candidate_tools.append({
-                    "server": conn.name,
-                    "name": t.get("name", conn.default_tool),
-                    "description": t.get("description", conn.description),
-                    "inputSchema": t.get("inputSchema", {}),
-                })
-
-            if conn.default_tool and conn.intent_regex:
-                fallback_calls.append({
-                    "server": conn.name,
-                    "tool": conn.default_tool,
-                    "arguments": conn.default_args_builder(user_message),
-                })
+        if matching_active_conns:
+            # Parallel tool list discovery across active connectors
+            tool_lists = await asyncio.gather(
+                *(conn.list_tools() for conn in matching_active_conns),
+                return_exceptions=True,
+            )
+            for conn, tools in zip(matching_active_conns, tool_lists):
+                if isinstance(tools, list):
+                    for t in tools:
+                        candidate_tools.append({
+                            "server": conn.name,
+                            "name": t.get("name", conn.default_tool),
+                            "description": t.get("description", conn.description),
+                            "inputSchema": t.get("inputSchema", {}),
+                        })
+                if conn.default_tool and conn.intent_regex:
+                    fallback_calls.append({
+                        "server": conn.name,
+                        "tool": conn.default_tool,
+                        "arguments": conn.default_args_builder(user_message),
+                    })
 
         unauth_notes: list[str] = []
         for c_name in unauthenticated_connectors:
@@ -529,9 +553,9 @@ class BaseApp:
         except Exception as e:
             context_sections.append(f"### TOOL ROUTER NOTE:\nError: {e}")
 
-        # 2. Local Hybrid RAG retrieval
+        # 2. Local Hybrid RAG retrieval (run off-thread to keep asyncio event loop responsive)
         if use_rag or live_tool_chunks:
-            retrieval = self.rag_engine.retrieve_context(message)
+            retrieval = await asyncio.to_thread(self.rag_engine.retrieve_context, message)
             rag_str = retrieval.get("formatted_context", "")
             if rag_str and rag_str != "No relevant past context or graph facts found.":
                 context_sections.append(rag_str)
@@ -892,15 +916,23 @@ class BaseApp:
 
         @api.get("/health", tags=["System"])
         async def health_probe():
-            ollama_ready = False
-            base_url = getattr(app_ref.model, "base_url", "http://localhost:11434")
-            try:
-                import httpx
-                async with httpx.AsyncClient(timeout=1.0) as client:
-                    res = await client.get(f"{base_url}/api/tags")
-                    ollama_ready = res.status_code == 200
-            except Exception:
-                ollama_ready = False
+            provider_type = type(app_ref.model).__name__.replace("Model", "").lower()
+            model_status = "unconfigured"
+
+            if provider_type == "ollama":
+                base_url = getattr(app_ref.model, "base_url", "http://localhost:11434")
+                try:
+                    import httpx
+                    async with httpx.AsyncClient(timeout=0.4) as client:
+                        res = await client.get(f"{base_url}/api/tags")
+                        model_status = "ready" if res.status_code == 200 else "unreachable"
+                except Exception:
+                    model_status = "unreachable"
+            elif provider_type in ("openai", "gemini"):
+                api_key = getattr(app_ref.model, "api_key", None)
+                model_status = "ready" if bool(api_key) else "needs_api_key"
+            else:
+                model_status = "ready"
 
             gmail_conn = app_ref.get_connector("gmail")
             gmail_ready = gmail_conn.is_authenticated() if gmail_conn else False
@@ -929,16 +961,19 @@ class BaseApp:
             if app_ref.vector_store is not None:
                 storage_status = "ready" if (chroma_path.exists() or hasattr(app_ref.vector_store, "database")) else "initialized"
 
+            services_dict = {
+                provider_type: model_status,
+                "chroma_db": storage_status,
+                "gmail_connector": "connected" if gmail_ready else "disconnected",
+            }
+
             return {
                 "status": "online",
                 "app": app_ref.title,
                 "version": app_ref.version,
                 "model": getattr(app_ref.model, "model_name", "unknown"),
-                "services": {
-                    "ollama": "ready" if ollama_ready else "unreachable",
-                    "chroma_db": storage_status,
-                    "gmail_connector": "connected" if gmail_ready else "disconnected",
-                },
+                "model_provider": provider_type,
+                "services": services_dict,
                 "connectors": [c.name for c in app_ref.list_connectors()],
                 "skills": [s.name for s in app_ref.list_skills()],
                 "resources": [r.name for r in app_ref.list_resources()],

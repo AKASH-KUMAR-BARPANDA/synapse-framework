@@ -31,6 +31,7 @@ class NetworkXGraph(BaseGraphStore):
         self.filepath = Path(filepath).resolve() if filepath else None
         self.palette = palette or PALETTE
         self.graph: nx.DiGraph = nx.DiGraph()
+        self._lower_node_map: dict[str, str] = {}
         if self.filepath:
             self.load()
 
@@ -62,6 +63,7 @@ class NetworkXGraph(BaseGraphStore):
             self.graph.nodes[clean_name].update(node_data)
         else:
             self.graph.add_node(clean_name, **node_data)
+        self._lower_node_map[clean_name.lower()] = clean_name
 
         if auto_save:
             self.save()
@@ -119,11 +121,8 @@ class NetworkXGraph(BaseGraphStore):
         facts: list[str] = []
         clean = entity.strip()
         if clean not in self.graph:
-            # Case-insensitive search
-            found = next(
-                (n for n in self.graph.nodes if str(n).lower() == clean.lower()),
-                None,
-            )
+            # O(1) case-insensitive lookup
+            found = self._lower_node_map.get(clean.lower())
             if not found:
                 return facts
             clean = str(found)
@@ -190,6 +189,7 @@ class NetworkXGraph(BaseGraphStore):
     def clear(self) -> None:
         """Clears all nodes and edges from the graph."""
         self.graph.clear()
+        self._lower_node_map.clear()
         self.save()
 
     def load(self) -> None:
@@ -202,6 +202,7 @@ class NetworkXGraph(BaseGraphStore):
                 return
             data = json.loads(content)
             self.graph = nx.node_link_graph(data, edges="links")
+            self._lower_node_map = {str(n).lower(): str(n) for n in self.graph.nodes}
         except Exception:
             pass  # nosec B110
 

@@ -257,6 +257,9 @@ class OllamaModel(BaseModelProvider):
             )
             valid_keys[(srv, name)] = t
             valid_keys[("", name)] = t
+            valid_keys[(srv.lower(), name.lower())] = t
+            valid_keys[("", name.lower())] = t
+            valid_keys[(srv.lower(), f"{srv.lower()}_{name.lower()}")] = t
 
         catalog_text = "\n".join(catalog_lines)
         tool_prompt = (
@@ -302,7 +305,12 @@ class OllamaModel(BaseModelProvider):
                             continue
                         srv = str(item.get("server") or "").strip()
                         tl = str(item.get("tool") or item.get("name") or "").strip()
-                        spec = valid_keys.get((srv, tl)) or valid_keys.get(("", tl))
+                        spec = (
+                            valid_keys.get((srv, tl))
+                            or valid_keys.get(("", tl))
+                            or valid_keys.get((srv.lower(), tl.lower()))
+                            or valid_keys.get(("", tl.lower()))
+                        )
                         if not spec:
                             continue
                         resolved_srv = str(spec.get("server") or srv)

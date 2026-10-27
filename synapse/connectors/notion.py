@@ -128,21 +128,28 @@ class NotionConnector(BaseConnector):
             last_edited = item.get("last_edited_time", "")
 
             title = "Untitled Notion Page"
-            props = item.get("properties", {})
-            for prop_val in props.values():
-                if (
-                    isinstance(prop_val, dict)
-                    and prop_val.get("type") == "title"
-                ):
-                    title_arr = prop_val.get("title", [])
-                    if title_arr:
-                        title = (
-                            "".join(
-                                t.get("plain_text", "") for t in title_arr
-                            ).strip()
-                            or title
-                        )
-                    break
+            # Support top-level database title list: item["title"]
+            if "title" in item and isinstance(item["title"], list):
+                db_title = "".join(t.get("plain_text", "") for t in item["title"] if isinstance(t, dict)).strip()
+                if db_title:
+                    title = db_title
+
+            if title == "Untitled Notion Page":
+                props = item.get("properties", {})
+                for prop_val in props.values():
+                    if (
+                        isinstance(prop_val, dict)
+                        and prop_val.get("type") == "title"
+                    ):
+                        title_arr = prop_val.get("title", [])
+                        if title_arr:
+                            title = (
+                                "".join(
+                                    t.get("plain_text", "") for t in title_arr if isinstance(t, dict)
+                                ).strip()
+                                or title
+                            )
+                        break
 
             results.append({
                 "id": item_id,

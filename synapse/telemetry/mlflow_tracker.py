@@ -152,6 +152,10 @@ class MLflowTracker:
         if not self.enabled or mlflow is None:
             return
         try:
+            if hasattr(mlflow, "log_dict"):
+                mlflow.log_dict(data, artifact_file)
+                return
+
             with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
                 json.dump(data, f, indent=2)
                 tmp_path = Path(f.name)

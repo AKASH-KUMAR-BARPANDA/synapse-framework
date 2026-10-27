@@ -55,6 +55,7 @@ class Resource:
         self.metadata = dict(metadata or {})
         self._raw_documents: list[Document] = []
         self._is_indexed: bool = False
+        self._cached_chunks: list[Document] | None = None
 
         if documents is not None:
             self.add(documents)
@@ -88,6 +89,7 @@ class Resource:
         for item in items:
             self._ingest_item(item, extra_metadata)
         self._is_indexed = False
+        self._cached_chunks = None
         return self
 
     def _ingest_item(self, item: Any, extra_metadata: dict[str, Any]) -> None:
@@ -228,6 +230,9 @@ class Resource:
 
     def get_chunks(self) -> list[Document]:
         """Splits all ingested raw documents into indexable chunks using DocumentChunker."""
+        if self._cached_chunks is not None:
+            return self._cached_chunks
+
         all_chunks: list[Document] = []
         for doc in self._raw_documents:
             src = doc.metadata.get("source", self.name)
@@ -241,6 +246,7 @@ class Resource:
                 parent_id=rec_id,
             )
             all_chunks.extend(chunks)
+        self._cached_chunks = all_chunks
         return all_chunks
 
     def index_into(
@@ -265,12 +271,14 @@ class Resource:
             vector_store.add_documents(chunks)
 
         if graph_store is not None:
-            # Register resource node and links in knowledge graph
-            graph_store.add_node_entity(
-                name=self.name,
-                entity_type="Resource",
-                attributes={"total_docs": len(self._raw_documents), "chunks": len(chunks)},
-            )
+            # Register resource node and links in knowledge graph with single atomic save
+            if hasattr(graph_store, "add_node_entity"):
+                graph_store.add_node_entity(
+                    name=self.name,
+                    entity_type="Resource",
+                    attributes={"total_docs": len(self._raw_documents), "chunks": len(chunks)},
+                    auto_save=False,
+                )
             for doc in self._raw_documents:
                 title = (
                     doc.metadata.get("title")
@@ -285,7 +293,13 @@ class Resource:
                         target=str(title),
                         source_type="Resource",
                         target_type="Document",
+                        auto_save=False,
                     )
+            if hasattr(graph_store, "save"):
+                try:
+                    graph_store.save()
+                except Exception:
+                    pass  # nosec B110
 
         self._is_indexed = True
         return len(chunks)

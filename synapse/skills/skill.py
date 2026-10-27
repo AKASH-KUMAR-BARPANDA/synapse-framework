@@ -133,7 +133,7 @@ class Skill:
                         if isinstance(parsed, dict):
                             frontmatter = parsed
                     except Exception:
-                        pass  # nosec B110  # nosec B110
+                        pass  # nosec B110
                 else:
                     # Fallback simple line parser if PyYAML is not present
                     for line in raw_yaml.splitlines():

@@ -80,7 +80,12 @@ def test_resource_ingestion_and_chaining():
 
         chunks = res.get_chunks()
         assert len(chunks) >= 4
-        print(f"    ✓ Resource ingested {len(res)} documents into {len(chunks)} indexable chunks!")
+        # Verify chunk caching & invalidation
+        chunks_cached = res.get_chunks()
+        assert chunks is chunks_cached
+        res.add("Invalidating chunk cache test")
+        assert len(res.get_chunks()) > len(chunks)
+        print(f"    ✓ Resource ingested {len(res)} documents into indexable chunks with caching!")
     finally:
         temp_doc_file.unlink(missing_ok=True)
 

@@ -27,25 +27,25 @@ class HybridRAGEngine:
         if self.graph_store and hasattr(self.graph_store, "graph") and hasattr(self.graph_store.graph, "nodes"):
             query_lower = query.lower()
             nodes = self.graph_store.graph.nodes
-            num_nodes = len(nodes)
-            if num_nodes <= 100:
-                for node in nodes:
-                    if str(node).lower() in query_lower:
-                        candidates.add(str(node))
-            else:
-                # Optimized O(M) n-gram token lookup for large graphs
+            node_map = getattr(self.graph_store, "_lower_node_map", None)
+            if node_map is None:
                 node_map = {str(n).lower(): str(n) for n in nodes}
-                tokens = re.findall(r"\b[a-zA-Z0-9_-]+\b", query_lower)
-                # Check 1-grams, 2-grams, 3-grams
-                for n_gram_size in range(1, 4):
-                    for i in range(len(tokens) - n_gram_size + 1):
-                        gram = " ".join(tokens[i : i + n_gram_size])
-                        if gram in node_map:
-                            candidates.add(node_map[gram])
 
-        matches = re.findall(r"\b[A-Z][a-zA-Z0-9_-]+\b", query)
-        for match in matches:
-            candidates.add(match)
+            tokens = re.findall(r"\b[a-zA-Z0-9_-]+\b", query_lower)
+            # Check 1-grams, 2-grams, 3-grams against graph node_map
+            for n_gram_size in range(1, 4):
+                for i in range(len(tokens) - n_gram_size + 1):
+                    gram = " ".join(tokens[i : i + n_gram_size])
+                    if gram in node_map:
+                        candidates.add(node_map[gram])
+
+            # Capitalized named entities that exist in the graph
+            matches = re.findall(r"\b[A-Z][a-zA-Z0-9_-]+\b", query)
+            for match in matches:
+                if match in nodes:
+                    candidates.add(match)
+                elif match.lower() in node_map:
+                    candidates.add(node_map[match.lower()])
 
         return list(candidates)
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import heapq
 import math
 import uuid
 from typing import Any, Union
@@ -27,15 +28,14 @@ class InMemoryDB(BaseVectorDB):
             embedding=embedding or embedding_function or embedding_model,
             **kwargs,
         )
-        self._entries: list[tuple[str, list[float], Document]] = []
+        # Store as dict {doc_id: (vec, doc, norm_vec)} for O(1) upserts and fast lookups
+        self._entries: dict[str, tuple[list[float], Document, float]] = {}
 
-    def _cosine_similarity(self, a: list[float], b: list[float]) -> float:
+    def _cosine_similarity(self, a: list[float], b: list[float], norm_a: float, norm_b: float) -> float:
         """Calculates cosine similarity between two vector embeddings."""
-        dot = sum(x * y for x, y in zip(a, b))
-        norm_a = math.sqrt(sum(x * x for x in a))
-        norm_b = math.sqrt(sum(y * y for y in b))
         if norm_a == 0.0 or norm_b == 0.0:
             return 0.0
+        dot = sum(x * y for x, y in zip(a, b))
         return dot / (norm_a * norm_b)
 
     def add_documents(
@@ -43,7 +43,7 @@ class InMemoryDB(BaseVectorDB):
         documents: list[Document],
         embeddings: list[list[float]] | None = None,
     ) -> list[str]:
-        """Upserts documents into memory."""
+        """Upserts documents into memory with O(1) dict operations."""
         if not documents:
             return []
 
@@ -53,9 +53,8 @@ class InMemoryDB(BaseVectorDB):
 
         for doc, vec in zip(documents, vecs):
             doc_id = str(doc.metadata.get("chunk_id") or uuid.uuid4())
-            # Replace if same ID exists
-            self._entries = [e for e in self._entries if e[0] != doc_id]
-            self._entries.append((doc_id, vec, doc))
+            vec_norm = math.sqrt(sum(y * y for y in vec))
+            self._entries[doc_id] = (vec, doc, vec_norm)
             assigned_ids.append(doc_id)
 
         return assigned_ids
@@ -67,14 +66,18 @@ class InMemoryDB(BaseVectorDB):
         filter_dict: dict[str, Any] | None = None,
         query_embedding: list[float] | None = None,
     ) -> list[Document]:
-        """Performs nearest-neighbor search in RAM using cosine similarity."""
+        """Performs nearest-neighbor search in RAM using cosine similarity and min-heap."""
         if not self._entries:
             return []
 
         q_vec = query_embedding or self.embedding_function.embed_query(query)
+        q_norm = math.sqrt(sum(x * x for x in q_vec))
+        if q_norm == 0.0:
+            return []
+
         scored: list[tuple[float, Document]] = []
 
-        for _, vec, doc in self._entries:
+        for vec, doc, vec_norm in self._entries.values():
             # Check optional metadata filter
             if filter_dict:
                 match = all(
@@ -83,12 +86,14 @@ class InMemoryDB(BaseVectorDB):
                 if not match:
                     continue
 
-            score = self._cosine_similarity(q_vec, vec)
+            score = self._cosine_similarity(q_vec, vec, q_norm, vec_norm)
             scored.append((score, doc))
 
-        # Sort descending by cosine similarity score
-        scored.sort(key=lambda x: x[0], reverse=True)
-        return [doc for _, doc in scored[:k]]
+        if not scored:
+            return []
+
+        top_matches = heapq.nlargest(k, scored, key=lambda x: x[0])
+        return [doc for _, doc in top_matches]
 
     def count(self) -> int:
         """Returns the number of documents stored in RAM."""

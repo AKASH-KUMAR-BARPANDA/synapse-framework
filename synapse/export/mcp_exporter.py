@@ -267,9 +267,10 @@ class MCPExporter:
                     v_count = source.vector_store.count()
                 except Exception:
                     pass  # nosec B110
+            from synapse import __version__ as pkg_version
             status_info = {
                 "title": getattr(source, "title", "Synapse"),
-                "version": getattr(source, "version", "0.2.4"),
+                "version": getattr(source, "version", pkg_version),
                 "model": getattr(getattr(source, "model", None), "model_name", "unknown"),
                 "connectors": [getattr(c, "name", str(c)) for c in cls._resolve_connectors(source)],
                 "vector_chunks_indexed": v_count,

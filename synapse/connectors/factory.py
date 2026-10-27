@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import inspect
 from collections.abc import Callable
 from pathlib import Path
@@ -36,6 +37,7 @@ class FunctionalConnector(BaseConnector):
         self.tools_dict: dict[str, Callable[..., Any]] = tools or {}
         self.tools = self.tools_dict
         self.is_authenticated_fn = is_authenticated_fn
+        self._cached_schemas: list[dict[str, Any]] | None = None
 
     def is_authenticated(self) -> bool:
         if self.is_authenticated_fn:
@@ -53,6 +55,8 @@ class FunctionalConnector(BaseConnector):
         return True
 
     async def list_tools(self) -> list[dict[str, Any]]:
+        if self._cached_schemas is not None:
+            return self._cached_schemas
         schemas: list[dict[str, Any]] = []
         for tool_name, func in self.tools_dict.items():
             doc = inspect.getdoc(func) or f"Execute {tool_name}."
@@ -97,8 +101,8 @@ class FunctionalConnector(BaseConnector):
                 "description": doc,
                 "inputSchema": schema_obj,
             })
+        self._cached_schemas = schemas
         return schemas
-
 
     async def call_tool(
         self,
@@ -110,10 +114,24 @@ class FunctionalConnector(BaseConnector):
                 f"Tool '{tool_name}' not registered on connector '{self.name}'."
             )
         func = self.tools_dict[tool_name]
-        args = arguments or {}
+        args = dict(arguments or {})
+
+        # Graceful parameter filtering: prune hallucinated LLM arguments if func doesn't accept **kwargs
+        try:
+            sig = inspect.signature(func)
+            has_var_keyword = any(
+                p.kind == inspect.Parameter.VAR_KEYWORD
+                for p in sig.parameters.values()
+            )
+            if not has_var_keyword:
+                args = {k: v for k, v in args.items() if k in sig.parameters}
+        except Exception:
+            pass  # nosec B110
+
         if inspect.iscoroutinefunction(func):
             return await func(**args)
-        return func(**args)
+        # Execute synchronous tool in worker thread to prevent event loop stalls
+        return await asyncio.to_thread(func, **args)
 
 
 def makeconnectors(
@@ -173,7 +191,10 @@ def makeconnectors(
     normalized_tools: dict[str, Callable[..., Any]] = {}
     if isinstance(tools, dict):
         normalized_tools = tools
-    elif isinstance(tools, list):
+    elif callable(tools):
+        fn_name = getattr(tools, "__name__", "tool")
+        normalized_tools[fn_name] = tools
+    elif isinstance(tools, (list, tuple, set)):
         for fn in tools:
             fn_name = getattr(fn, "__name__", str(fn))
             normalized_tools[fn_name] = fn
@@ -184,7 +205,7 @@ def makeconnectors(
             if t_name not in normalized_tools:
                 normalized_tools[t_name] = t_fn
 
-    chosen_default = default_tool or ""
+    chosen_default = default_tool or (next(iter(normalized_tools.keys())) if normalized_tools else "")
 
     return FunctionalConnector(
         name=name,
