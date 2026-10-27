@@ -8,19 +8,19 @@ from pathlib import Path
 # Add project root to sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-# 1. Test PascalCase and lowercase imports as requested by the user
-from Synapse import BaseApp, SynapseApp, __version__
-from Synapse.model import Gemini, ollama, openAI
-from Synapse.connectors import (
+# 1. Test clean, organized modular imports (lowercase synapse only)
+import pytest
+from synapse import BaseApp, SynapseApp, __version__
+from synapse.models import Gemini, ollama, openAI
+from synapse.connectors import (
     GmailConnectors,
     GooglePhotosConnectors,
     NotionConnectors,
-    make_connector,
     makeconnectors,
 )
-from Synapse.Oauth import GoogleOAuthService
-from Synapse.skills import Skill, makeskills
-from Synapse.resource import Resource
+from synapse.oauth import GoogleOAuthService
+from synapse.skills import Skill, makeskills
+from synapse.resource import Resource
 
 
 def test_library_imports():
@@ -34,13 +34,28 @@ def test_library_imports():
     assert GooglePhotosConnectors is not None
     assert NotionConnectors is not None
     assert GoogleOAuthService is not None
-    assert makeconnectors is make_connector
     assert callable(makeconnectors)
     assert makeskills is not None
     assert callable(makeskills)
     assert Resource is not None
     assert Skill is not None
-    print("    ✓ All public library imports and aliases succeeded!")
+
+    # Verify namespace isolation: top-level synapse only exports BaseApp / SynapseApp
+    import synapse
+    assert hasattr(synapse, "BaseApp")
+    assert not hasattr(synapse, "makeconnectors")
+    assert not hasattr(synapse, "make_connector")
+    assert not hasattr(synapse, "makeskills")
+    assert not hasattr(synapse, "make_skill")
+
+    # Verify uppercase 'Synapse' is NOT registered
+    import importlib
+    import sys
+    assert "Synapse" not in sys.modules
+    with pytest.raises((ImportError, KeyError)):
+        importlib.import_module("Synapse.models")
+
+    print("    ✓ All modular imports and isolation verified!")
 
 
 def test_models_instantiation():

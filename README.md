@@ -30,7 +30,7 @@
 
 **Synapse** is an open-source, local-first Python framework for developing autonomous AI assistants, multi-tool agents, and intelligent backend services. It unifies **Model Context Protocol (MCP)** tool execution, **Hybrid RAG** (vector embeddings combined with directed knowledge graphs), pluggable inference providers (**Ollama**, **Google Gemini**, **OpenAI**), and a real-time developer inspector with an interactive 3D WebGL knowledge visualizer.
 
-> **Tip**: Synapse supports both lowercase (`from synapse import ...`) and PascalCase (`from Synapse import ...`) imports for maximum developer convenience.
+> **Architecture**: Synapse enforces clean modular imports (`from synapse import BaseApp`, `from synapse.connectors import makeconnectors`, `from synapse.models import ollama`, `from synapse.skills import makeskills`, `from synapse.resource import Resource`).
 
 ---
 
@@ -159,7 +159,8 @@ pip install "synapse-framework[all]"
 Get an AI assistant with custom tools running locally in just 10 lines of code:
 
 ```python
-from synapse import BaseApp, makeconnectors
+from synapse import BaseApp
+from synapse.connectors import makeconnectors
 from synapse.models import ollama
 
 def get_crypto_price(symbol: str) -> dict:
@@ -184,10 +185,10 @@ Now open:
 `BaseApp` gives you a production-ready, full-featured AI backend combining local inference, OAuth connectors, vector storage, and knowledge graphs:
 
 ```python
-from Synapse import BaseApp
-from Synapse.models import ollama
-from Synapse.connectors import GmailConnectors, NotionConnectors
-from Synapse.resource import Resource
+from synapse import BaseApp
+from synapse.models import ollama
+from synapse.connectors import GmailConnectors, NotionConnectors
+from synapse.resource import Resource
 
 # BaseApp gives you a complete, ready-to-use AI backend:
 app = BaseApp(

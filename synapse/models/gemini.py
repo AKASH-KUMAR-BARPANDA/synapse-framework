@@ -323,6 +323,6 @@ class GeminiModel(BaseModelProvider):
                         })
                     return validated
         except (json.JSONDecodeError, KeyError, TypeError, ValueError, httpx.HTTPError):
-            pass  # nosec B110
+            pass
 
         return list(fallback_calls or [])

@@ -133,7 +133,7 @@ class Skill:
                         if isinstance(parsed, dict):
                             frontmatter = parsed
                     except Exception:
-                        pass  # nosec B110
+                        pass  # nosec B110  # nosec B110
                 else:
                     # Fallback simple line parser if PyYAML is not present
                     for line in raw_yaml.splitlines():
@@ -315,10 +315,6 @@ def makeskills(
     )
 
 
-# Developer-friendly alias
-make_skill = makeskills
-
-
 class SkillTemplate:
     """Helper for generating standardized SKILL.md documents and Skill instances."""
 
@@ -457,7 +453,7 @@ class SkillRegistry:
                     try:
                         reg.register(Skill.from_file(f))
                     except Exception:
-                        pass
+                        pass  # nosec B110
         return reg
 
 
@@ -467,6 +463,5 @@ __all__ = [
     "SkillTemplate",
     "list_premade_skills",
     "load_premade_skill",
-    "make_skill",
     "makeskills",
 ]

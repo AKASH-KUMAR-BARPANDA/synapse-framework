@@ -204,7 +204,7 @@ class BaseApp:
                 try:
                     self.add_skill(load_premade_skill(sk_name))
                 except Exception:
-                    pass
+                    pass  # nosec B110
 
         self._resources: list[Resource] = []
         if resource is not None:

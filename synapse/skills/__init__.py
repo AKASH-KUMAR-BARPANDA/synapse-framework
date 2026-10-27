@@ -6,7 +6,6 @@ from synapse.skills.skill import (
     SkillTemplate,
     list_premade_skills,
     load_premade_skill,
-    make_skill,
     makeskills,
 )
 
@@ -16,6 +15,5 @@ __all__ = [
     "SkillTemplate",
     "list_premade_skills",
     "load_premade_skill",
-    "make_skill",
     "makeskills",
 ]

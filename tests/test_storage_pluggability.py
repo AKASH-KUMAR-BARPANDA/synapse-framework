@@ -10,13 +10,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
-# Test both PascalCase and lowercase imports as requested by the user
-from Synapse import BaseApp
-from Synapse.database import chromadb, in_memory, pgvector, qdrant
-from Synapse.graph import in_memory_graph, neo4j, networkx
-from Synapse.models import OllamaModel
-from Synapse.resource import Resource
-from Synapse.storage import vectorStorage
+from synapse import BaseApp
+from synapse.database import chromadb, in_memory, pgvector, qdrant
+from synapse.graph import in_memory_graph, neo4j, networkx
+from synapse.models import OllamaModel
+from synapse.resource import Resource
+from synapse.storage import vectorStorage
 
 
 def test_import_and_factories():

@@ -12,7 +12,7 @@ from synapse.connectors.mcp_wrapper import MCPConnector
 
 
 class FunctionalConnector(BaseConnector):
-    """Dynamic BaseConnector implementation created by `make_connector`."""
+    """Dynamic BaseConnector implementation created by `makeconnectors`."""
 
     def __init__(
         self,
@@ -116,7 +116,7 @@ class FunctionalConnector(BaseConnector):
         return func(**args)
 
 
-def make_connector(
+def makeconnectors(
     name: str,
     service_manager: Any = None,
     server: Any = None,
@@ -126,7 +126,7 @@ def make_connector(
     default_tool: str = "",
     is_authenticated_fn: Callable[[], bool] | None = None,
 ) -> BaseConnector:
-    """Creates a Synapse `BaseConnector` from custom service managers or servers.
+    """Creates a Synapse `BaseConnector` from custom service managers, functions, or servers.
 
     Args:
         name: Unique connector name.
@@ -143,12 +143,12 @@ def make_connector(
 
     Example:
         ```python
-        from synapse.connectors import make_connector
+        from synapse.connectors import makeconnectors
 
         def search_docs(query: str = ""):
             return [{"title": "Quickstart", "content": "..."}]
 
-        docs_connector = make_connector(
+        docs_connector = makeconnectors(
             name="docs",
             description="Documentation search",
             tools={"search_docs": search_docs},
@@ -196,7 +196,3 @@ def make_connector(
         default_tool=chosen_default,
         is_authenticated_fn=is_authenticated_fn,
     )
-
-
-# Developer-friendly alias matching user request
-makeconnectors = make_connector

@@ -13,10 +13,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fastapi.testclient import TestClient
 
-from Synapse import BaseApp
-from Synapse.connectors import makeconnectors
-from Synapse.export import GraphExporter, MCPExporter, graphexporter, mcpexporter
-from Synapse.models import OllamaModel
+from synapse import BaseApp
+from synapse.connectors import makeconnectors
+from synapse.export import GraphExporter, MCPExporter, graphexporter, mcpexporter
+from synapse.models import OllamaModel
 
 
 def test_mcp_exporter():

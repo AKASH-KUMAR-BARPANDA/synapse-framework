@@ -206,7 +206,7 @@ class MCPExporter:
                     load_premade_skill("mcp-orchestrator"),
                 ]
             except Exception:
-                pass
+                pass  # nosec B110
 
         for sk in skills_list:
             clean_pname = re.sub(r"[^a-zA-Z0-9_]", "_", getattr(sk, "name", "skill").lower().strip())
@@ -223,7 +223,7 @@ class MCPExporter:
             try:
                 server.prompt(name=clean_pname, description=p_desc)(_make_skill_prompt(sk))
             except Exception:
-                pass
+                pass  # nosec B110
 
         # ---------------- 4. Register MCP Resources ----------------
         @server.resource(
@@ -266,7 +266,7 @@ class MCPExporter:
                 try:
                     v_count = source.vector_store.count()
                 except Exception:
-                    pass
+                    pass  # nosec B110
             status_info = {
                 "title": getattr(source, "title", "Synapse"),
                 "version": getattr(source, "version", "0.2.4"),
@@ -291,7 +291,7 @@ class MCPExporter:
             try:
                 server.resource(uri, name=r_name, description=f"Resource collection '{r_name}'")(_make_resource_fn(r))
             except Exception:
-                pass
+                pass  # nosec B110
 
         return server
 

@@ -5,11 +5,11 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-# 1. Test standard and PascalCase imports
-from synapse.skills import makeskills
-from Synapse.skills import makeskills as pascal_makeskills
+# 1. Clean organized imports from submodules
+from synapse import BaseApp
+from synapse.models import OllamaModel
 from synapse.resource import Resource
-from synapse import BaseApp, OllamaModel
+from synapse.skills import makeskills
 from langchain_core.documents import Document
 
 
@@ -44,7 +44,7 @@ tags: [sql, postgres, performance]
         temp_skill_file = Path(f.name)
 
     try:
-        skill2 = pascal_makeskills(temp_skill_file)
+        skill2 = makeskills(temp_skill_file)
         assert skill2.name == "Database Expert"
         assert skill2.description == "SQL query and indexing specialist"
         assert "postgres" in skill2.tags

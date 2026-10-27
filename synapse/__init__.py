@@ -1,234 +1,55 @@
-"""Synapse — Multi-MCP & Hybrid RAG Framework."""
+"""Synapse — Modular Multi-MCP & Hybrid RAG Application Framework.
+
+Clean, modular package organization:
+- `from synapse import BaseApp`
+- `from synapse.connectors import makeconnectors, GmailConnector, NotionConnector, ...`
+- `from synapse.models import ollama, gemini, openai, OllamaModel, ...`
+- `from synapse.database import chromadb, in_memory, qdrant, ChromaDB, ...`
+- `from synapse.embeddings import fastembed, minilm, resolve_embedding, ...`
+- `from synapse.graph import networkx, neo4j, NetworkXGraph, ...`
+- `from synapse.skills import makeskills, Skill, load_premade_skill, ...`
+- `from synapse.resource import Resource`
+- `from synapse.storage import vectorStorage, VectorStorage`
+- `from synapse.telemetry import MLflowTracker, track_run`
+- `from synapse.export import MCPExporter, GraphExporter`
+- `from synapse.oauth import GoogleOAuthService, NotionAuthService`
+- `from synapse.rag import HybridRAGEngine, DocumentChunker`
+"""
 
 from __future__ import annotations
 
-import sys
-
-from synapse import connectors as connectors
-from synapse import database as database
-from synapse import embeddings as embedding
-from synapse import embeddings as embeddings
-from synapse import export as export
-from synapse import graph as graph
-from synapse import models as model
-from synapse import models as models
-from synapse import oauth as Oauth
-from synapse import oauth as oauth
-from synapse import rag as rag
-from synapse import resource as resource
-from synapse import resource as resources
-from synapse import skills as skills
-from synapse import storage as storage
-from synapse import telemetry as telemetry
+from synapse import connectors
+from synapse import database
+from synapse import embeddings
+from synapse import export
+from synapse import graph
+from synapse import models
+from synapse import oauth
+from synapse import rag
+from synapse import resource
+from synapse import skills
+from synapse import storage
+from synapse import telemetry
 from synapse import telemetry as mlflow
 from synapse.app import BaseApp, SynapseApp
-from synapse.connectors import (
-    BaseConnector,
-    GmailConnector,
-    GmailConnectors,
-    GooglePhotosConnector,
-    GooglePhotosConnectors,
-    MCPConnector,
-    NotionConnector,
-    NotionConnectors,
-    NotionsConnector,
-    make_connector,
-    makeconnectors,
-)
-from synapse.database import (
-    BaseVectorDB,
-    ChromaDB,
-    InMemoryDB,
-    PGVectorDB,
-    QdrantDB,
-    chromadb,
-    in_memory,
-    pgvector,
-    qdrant,
-)
-from synapse.embeddings import (
-    fastembed,
-    huggingface_embeddings,
-    minilm,
-    ollama_embeddings,
-    openai_embeddings,
-    resolve_embedding,
-)
-from synapse.export import (
-    GraphExporter,
-    MCPExporter,
-    graphexporter,
-    mcpexporter,
-)
-from synapse.graph import (
-    BaseGraphStore,
-    InMemoryGraph,
-    Neo4jGraph,
-    NetworkXGraph,
-    in_memory_graph,
-    neo4j,
-    networkx,
-)
-from synapse.models import (
-    BaseModelProvider,
-    Gemimi,
-    Gemini,
-    GeminiModel,
-    Ollama,
-    OllamaModel,
-    OpenAI,
-    OpenAIModel,
-    gemimi,
-    gemini,
-    get_model,
-    ollama,
-    openAI,
-    openai,
-)
-from synapse.oauth import GoogleOAuthService, NotionAuthService
-from synapse.rag import DocumentChunker, HybridRAGEngine
-from synapse.resource import Resource
-from synapse.skills import (
-    Skill,
-    SkillRegistry,
-    SkillTemplate,
-    list_premade_skills,
-    load_premade_skill,
-    make_skill,
-    makeskills,
-)
-from synapse.storage import (
-    LocalVectorStorage,
-    LocalVectorStore,
-    PersistentGraphStore,
-    VectorStorage,
-    vectorStorage,
-)
-from synapse.telemetry import (
-    MLflowTracker,
-    get_tracker,
-    track_run,
-)
 
 __version__ = "0.2.5"
 
-# Register module aliases in sys.modules
-_this = sys.modules[__name__]
-sys.modules["Synapse"] = _this
-sys.modules["Synapse.app"] = sys.modules["synapse.app"]
-sys.modules["Synapse.model"] = sys.modules["synapse.models"]
-sys.modules["Synapse.models"] = sys.modules["synapse.models"]
-sys.modules["synapse.model"] = sys.modules["synapse.models"]
-sys.modules["Synapse.connectors"] = sys.modules["synapse.connectors"]
-sys.modules["Synapse.database"] = sys.modules["synapse.database"]
-sys.modules["Synapse.embeddings"] = sys.modules["synapse.embeddings"]
-sys.modules["Synapse.embedding"] = sys.modules["synapse.embeddings"]
-sys.modules["synapse.embedding"] = sys.modules["synapse.embeddings"]
-sys.modules["Synapse.export"] = sys.modules["synapse.export"]
-sys.modules["Synapse.exports"] = sys.modules["synapse.export"]
-sys.modules["Synapse.graph"] = sys.modules["synapse.graph"]
-sys.modules["Synapse.oauth"] = sys.modules["synapse.oauth"]
-sys.modules["Synapse.Oauth"] = sys.modules["synapse.oauth"]
-sys.modules["Synapse.storage"] = sys.modules["synapse.storage"]
-sys.modules["Synapse.rag"] = sys.modules["synapse.rag"]
-sys.modules["Synapse.skills"] = sys.modules["synapse.skills"]
-sys.modules["Synapse.resource"] = sys.modules["synapse.resource"]
-sys.modules["Synapse.resources"] = sys.modules["synapse.resource"]
-sys.modules["synapse.resources"] = sys.modules["synapse.resource"]
-sys.modules["Synapse.telemetry"] = sys.modules["synapse.telemetry"]
-sys.modules["synapse.mlflow"] = sys.modules["synapse.telemetry"]
-sys.modules["Synapse.mlflow"] = sys.modules["synapse.telemetry"]
-
 __all__ = [
     "BaseApp",
-    "BaseConnector",
-    "BaseGraphStore",
-    "BaseModelProvider",
-    "BaseVectorDB",
-    "ChromaDB",
-    "DocumentChunker",
-    "Gemimi",
-    "Gemini",
-    "GeminiModel",
-    "GmailConnector",
-    "GmailConnectors",
-    "GoogleOAuthService",
-    "GooglePhotosConnector",
-    "GooglePhotosConnectors",
-    "GraphExporter",
-    "HybridRAGEngine",
-    "InMemoryDB",
-    "InMemoryGraph",
-    "LocalVectorStorage",
-    "LocalVectorStore",
-    "MCPConnector",
-    "MCPExporter",
-    "MLflowTracker",
-    "Neo4jGraph",
-    "NetworkXGraph",
-    "NotionAuthService",
-    "NotionConnector",
-    "NotionConnectors",
-    "NotionsConnector",
-    "Oauth",
-    "Ollama",
-    "OllamaModel",
-    "OpenAI",
-    "OpenAIModel",
-    "PGVectorDB",
-    "PersistentGraphStore",
-    "QdrantDB",
-    "Resource",
-    "Skill",
-    "SkillRegistry",
-    "SkillTemplate",
     "SynapseApp",
-    "VectorStorage",
     "__version__",
-    "chromadb",
     "connectors",
     "database",
-    "embedding",
     "embeddings",
     "export",
-    "fastembed",
-    "gemimi",
-    "gemini",
-    "get_model",
-    "get_tracker",
     "graph",
-    "graphexporter",
-    "huggingface_embeddings",
-    "in_memory",
-    "in_memory_graph",
-    "list_premade_skills",
-    "load_premade_skill",
-    "make_connector",
-    "make_skill",
-    "makeconnectors",
-    "makeskills",
-    "mcpexporter",
-    "minilm",
     "mlflow",
-    "model",
     "models",
-    "neo4j",
-    "networkx",
     "oauth",
-    "ollama",
-    "ollama_embeddings",
-    "openAI",
-    "openai",
-    "openai_embeddings",
-    "pgvector",
-    "qdrant",
     "rag",
-    "resolve_embedding",
     "resource",
-    "resources",
     "skills",
     "storage",
     "telemetry",
-    "track_run",
-    "vectorStorage",
 ]

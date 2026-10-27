@@ -11,13 +11,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from langchain_core.documents import Document
 
-# 1. Test PascalCase and lowercase imports as requested by the user
-from Synapse import BaseApp
-from Synapse.database import chromadb, in_memory, qdrant
-from Synapse.embeddings import minilm, resolve_embedding
-from Synapse.models import OllamaModel
-from Synapse.resource import Resource
-from Synapse.storage import vectorStorage
+# 1. Clean organized imports from synapse modules
+from synapse import BaseApp
+from synapse.database import chromadb, in_memory, qdrant
+from synapse.embeddings import minilm, resolve_embedding
+from synapse.models import OllamaModel
+from synapse.resource import Resource
+from synapse.storage import vectorStorage
 
 
 def test_embedding_resolution():
