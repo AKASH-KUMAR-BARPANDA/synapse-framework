@@ -41,6 +41,18 @@ class BaseModelProvider(ABC):
         """
         ...
 
+    async def stream_chat(
+        self,
+        prompt: str | None = None,
+        messages: list[dict[str, str]] | None = None,
+        temperature: float | None = None,
+    ) -> AsyncGenerator[str, None]:
+        """Convenience streaming generator accepting either a single prompt string or messages list."""
+        if messages is None:
+            messages = [{"role": "user", "content": str(prompt or "")}]
+        async for token in self.chat_stream(messages=messages, temperature=temperature):
+            yield token
+
     @abstractmethod
     async def generate(
         self,

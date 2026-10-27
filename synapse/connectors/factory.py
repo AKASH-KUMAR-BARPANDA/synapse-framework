@@ -100,6 +100,7 @@ class FunctionalConnector(BaseConnector):
                 "name": tool_name,
                 "description": doc,
                 "inputSchema": schema_obj,
+                "parameters": schema_obj,
             })
         self._cached_schemas = schemas
         return schemas
@@ -128,10 +129,13 @@ class FunctionalConnector(BaseConnector):
         except Exception:
             pass  # nosec B110
 
-        if inspect.iscoroutinefunction(func):
-            return await func(**args)
-        # Execute synchronous tool in worker thread to prevent event loop stalls
-        return await asyncio.to_thread(func, **args)
+        try:
+            if inspect.iscoroutinefunction(func):
+                return await func(**args)
+            # Execute synchronous tool in worker thread to prevent event loop stalls
+            return await asyncio.to_thread(func, **args)
+        except Exception as e:
+            return {"error": f"Tool execution failed: {e}"}
 
 
 def makeconnectors(

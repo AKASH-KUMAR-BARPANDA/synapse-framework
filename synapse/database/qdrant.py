@@ -26,6 +26,10 @@ class QdrantDB(BaseVectorDB):
         **kwargs: Any,
     ) -> None:
         self.collection_name = collection_name
+        self.url = url
+        self.location = location
+        self.api_key = api_key
+        self.path = path
         self.embedding_function = resolve_embedding(
             embedding=embedding or embedding_function or embedding_model,
             **kwargs,

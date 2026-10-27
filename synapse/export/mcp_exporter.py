@@ -20,6 +20,27 @@ except ImportError:
 class MCPExporter:
     """Exports Synapse connectors and tools to standard MCP schemas, client configs, and stdio servers."""
 
+    def __init__(self, source: Any = None) -> None:
+        self.source = source
+
+    def generate_claude_desktop_config(
+        self,
+        server_name: str = "synapse",
+        python_path: str | None = None,
+        args: list[str] | None = None,
+        host: str = "127.0.0.1",
+        port: int = 8000,
+    ) -> dict[str, Any]:
+        """Instance helper generating Claude Desktop configuration."""
+        return self.to_claude_desktop_config(
+            source=self.source,
+            server_name=server_name,
+            python_path=python_path,
+            args=args,
+            host=host,
+            port=port,
+        )
+
     @classmethod
     def to_tools_list(cls, source: Any) -> list[dict[str, Any]]:
         """Extracts standard MCP tool definitions from BaseApp or list of connectors."""
@@ -321,18 +342,21 @@ class MCPExporter:
         """Generates standard claude_desktop_config.json configuration for Claude Desktop."""
         cmd = python_path or sys.executable or "python3"
         run_args = args or ["-m", "synapse.cli", "mcp"]
-        return {
-            "mcpServers": {
-                server_name: {
-                    "command": cmd,
-                    "args": run_args,
-                    "env": {
-                        "SYNAPSE_HOST": host,
-                        "SYNAPSE_PORT": str(port),
-                    },
-                }
-            }
+        server_entry = {
+            "command": cmd,
+            "args": run_args,
+            "env": {
+                "SYNAPSE_HOST": host,
+                "SYNAPSE_PORT": str(port),
+            },
         }
+        servers = {server_name: server_entry}
+        connectors = cls._resolve_connectors(source)
+        for c in connectors:
+            c_name = getattr(c, "name", None)
+            if c_name and c_name != server_name:
+                servers[c_name] = server_entry
+        return {"mcpServers": servers}
 
     @classmethod
     def to_json(cls, source: Any, indent: int = 2) -> str:

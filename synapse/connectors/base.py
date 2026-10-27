@@ -80,6 +80,14 @@ class BaseConnector(ABC):
         """
         ...
 
+    async def execute_tool(
+        self,
+        tool_name: str,
+        arguments: dict[str, Any] | None = None,
+    ) -> Any:
+        """Executes a named tool (convenience alias for call_tool)."""
+        return await self.call_tool(tool_name=tool_name, arguments=arguments)
+
     def default_args_builder(self, user_message: str) -> dict[str, Any]:
         """Builds default tool arguments from user prompt when arguments are missing."""
         return {}

@@ -217,3 +217,13 @@ class DocumentChunker:
             documents.append(Document(page_content=chunk, metadata=chunk_meta))
 
         return documents
+
+    def split_text(
+        self,
+        text: str,
+        metadata: dict[str, Any] | None = None,
+        source: str | None = None,
+    ) -> list[Document]:
+        """Convenience method splitting text into Document chunks with metadata."""
+        src = source or (metadata.get("source") if metadata else None) or "text"
+        return self.chunk_text(text=text, source=src, metadata=metadata)

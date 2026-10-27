@@ -1002,6 +1002,15 @@ class BaseApp:
         self._fastapi_app = api
         return self._fastapi_app
 
+    def create_app(self) -> FastAPI:
+        """Returns the configured FastAPI application instance."""
+        return self.fastapi_app
+
+    @property
+    def app(self) -> FastAPI:
+        """Alias property for `fastapi_app`."""
+        return self.fastapi_app
+
     async def aclose(self) -> None:
         """Asynchronously cleans up model, vector database, and graph store resources."""
         if hasattr(self.model, "close") and callable(self.model.close):

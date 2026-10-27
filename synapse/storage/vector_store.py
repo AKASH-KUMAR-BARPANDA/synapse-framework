@@ -66,9 +66,20 @@ class VectorStorage:
                 **kwargs,
             )
 
-    def add_documents(self, documents: list[Document]) -> list[str]:
+    def add_documents(
+        self,
+        documents: list[Document | str],
+        metadatas: list[dict[str, Any]] | None = None,
+    ) -> list[str]:
         """Upserts documents into the underlying database."""
-        return self.database.add_documents(documents)
+        docs_to_add: list[Document] = []
+        for i, item in enumerate(documents):
+            if isinstance(item, Document):
+                docs_to_add.append(item)
+            else:
+                meta = metadatas[i] if metadatas and i < len(metadatas) else {}
+                docs_to_add.append(Document(page_content=str(item), metadata=meta))
+        return self.database.add_documents(docs_to_add)
 
     def similarity_search(
         self,
@@ -78,6 +89,24 @@ class VectorStorage:
     ) -> list[Document]:
         """Performs nearest-neighbor semantic search."""
         return self.database.similarity_search(query=query, k=k, filter_dict=filter_dict)
+
+    def search(
+        self,
+        query: str,
+        top_k: int = 4,
+        filter_dict: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Convenience search helper returning dictionaries with page_content and metadata."""
+        docs = self.similarity_search(query=query, k=top_k, filter_dict=filter_dict)
+        return [
+            {
+                "page_content": d.page_content,
+                "metadata": d.metadata,
+                "source": d.metadata.get("source", ""),
+                "score": getattr(d, "score", 0.0),
+            }
+            for d in docs
+        ]
 
     def count(self) -> int:
         """Returns the total number of document chunks currently indexed."""

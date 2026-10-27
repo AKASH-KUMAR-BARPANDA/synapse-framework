@@ -23,6 +23,7 @@ class PGVectorDB(BaseVectorDB):
         **kwargs: Any,
     ) -> None:
         self.connection_string = connection_string
+        self.table_name = kwargs.get("table_name") or collection_name
         self.collection_name = collection_name
         self.embedding_function = resolve_embedding(
             embedding=embedding or embedding_function or embedding_model,
@@ -37,7 +38,7 @@ class PGVectorDB(BaseVectorDB):
                 collection_name=collection_name,
                 embedding_function=self.embedding_function,
             )
-        except ImportError:
+        except Exception:
             from synapse.database.memory import InMemoryDB
             self._fallback = InMemoryDB(
                 embedding_model=embedding_model,

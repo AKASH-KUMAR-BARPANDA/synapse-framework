@@ -12,6 +12,13 @@ from synapse.config import DESIGN_TOKENS
 class GraphExporter:
     """Exports knowledge graph state into a standalone 3D WebGL HTML visualizer."""
 
+    def __init__(self, graph_source: Any = None) -> None:
+        self.graph_source = graph_source
+
+    def to_dict(self) -> dict[str, Any]:
+        """Returns WebGL node and link dictionary for 3D force simulation."""
+        return self.to_webgl_json(self.graph_source)
+
     @classmethod
     def to_webgl_json(cls, graph_source: Any) -> dict[str, Any]:
         """Converts graph into node and link lists for 3D force simulation."""

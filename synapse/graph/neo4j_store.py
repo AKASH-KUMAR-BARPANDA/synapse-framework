@@ -19,6 +19,7 @@ class Neo4jGraph(BaseGraphStore):
         palette: dict[str, str] | None = None,
     ) -> None:
         self.uri = uri
+        self.auth = auth
         self.database = database
         self.palette = palette or DESIGN_TOKENS["palettes"]["zinc"]
         self.driver = None

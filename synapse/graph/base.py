@@ -103,6 +103,22 @@ class BaseGraphStore(ABC):
     def find_relation_for(self, entity: str) -> list[str]:
         """Finds all incoming and outgoing relational facts for a given entity."""
 
+    def get_relations(self, entity: str) -> list[dict[str, str]]:
+        """Returns structured relation dictionaries matching entity."""
+        triples = self.find_relation_for(entity)
+        results = []
+        for t in triples:
+            parts = t.split(" -> ")
+            if len(parts) == 3:
+                results.append({"source": parts[0].strip(), "relation": parts[1].strip(), "target": parts[2].strip()})
+            else:
+                results.append({"triple": t, "relation": t, "target": t})
+        return results
+
+    def export_dict(self) -> dict[str, Any]:
+        """Returns node and link data dictionary (alias for get_3d_payload)."""
+        return self.get_3d_payload()
+
     @abstractmethod
     def get_3d_payload(self) -> dict[str, Any]:
         """Returns node and link data formatted for 3D force-directed visualization."""

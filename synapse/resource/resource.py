@@ -65,6 +65,22 @@ class Resource:
         """Returns the list of raw Document objects in this resource."""
         return list(self._raw_documents)
 
+    def load_documents(self) -> list[Document]:
+        """Returns the list of loaded documents (alias for .documents)."""
+        return self.documents
+
+    @property
+    def files(self) -> list[str]:
+        """Returns the list of unique file source paths ingested."""
+        seen = set()
+        out = []
+        for d in self._raw_documents:
+            src = d.metadata.get("source") or d.metadata.get("path")
+            if src and src not in seen:
+                seen.add(src)
+                out.append(src)
+        return out
+
     def __len__(self) -> int:
         return len(self._raw_documents)
 
