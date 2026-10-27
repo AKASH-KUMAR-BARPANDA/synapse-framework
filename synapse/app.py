@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import time
 from collections.abc import AsyncGenerator, Sequence
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,9 +30,10 @@ from synapse.models.base import BaseModelProvider
 from synapse.models.ollama import OllamaModel
 from synapse.rag.hybrid_rag import HybridRAGEngine
 from synapse.resource.resource import Resource
-from synapse.skills.skill import Skill, makeskills
+from synapse.skills.skill import Skill, load_premade_skill, makeskills
 from synapse.storage.graph_exporter import GraphExporter
 from synapse.storage.vector_store import VectorStorage
+from synapse.telemetry.mlflow_tracker import MLflowTracker
 
 
 class ChatMessagePayload(BaseModel):
@@ -103,6 +106,9 @@ class BaseApp:
         graph_store: BaseGraphStore | bool | None = None,
         visualize_graph: BaseGraphStore | bool | None = None,
         data_dir: str | Path | None = None,
+        mlflow_tracking: bool = False,
+        mlflow_experiment: str | None = None,
+        mlflow_tracking_uri: str | None = None,
     ) -> None:
         """Initializes the BaseApp instance.
 
@@ -123,6 +129,9 @@ class BaseApp:
             graph_store: Alias for Visualize_graph.
             visualize_graph: Lowercase alias for Visualize_graph.
             data_dir: Optional custom storage directory.
+            mlflow_tracking: Enables automated MLflow experiment and latency tracking.
+            mlflow_experiment: Custom MLflow experiment name.
+            mlflow_tracking_uri: Optional remote or local MLflow tracking server URI.
         """
         self.title = title
         self.description = description
@@ -189,6 +198,13 @@ class BaseApp:
                     self.add_skill(s)
             else:
                 self.add_skill(skills)
+        else:
+            # Auto-attach premade core skills for instant readiness
+            for sk_name in ("rag-analyst", "knowledge-graph", "mcp-orchestrator"):
+                try:
+                    self.add_skill(load_premade_skill(sk_name))
+                except Exception:
+                    pass
 
         self._resources: list[Resource] = []
         if resource is not None:
@@ -201,6 +217,14 @@ class BaseApp:
         if resources is not None:
             for r in resources:
                 self.add_resource(r)
+
+        # Initialize MLflow experiment tracker
+        clean_exp = (mlflow_experiment or f"{self.title.lower().replace(' ', '_')}_eval").strip()
+        self.mlflow_tracker = MLflowTracker(
+            experiment_name=clean_exp,
+            tracking_uri=mlflow_tracking_uri,
+            enabled=mlflow_tracking or bool(os.getenv("MLFLOW_TRACKING_URI")),
+        )
 
         self._fastapi_app: FastAPI | None = None
 
@@ -558,8 +582,23 @@ class BaseApp:
             messages.append({"role": turn.role, "content": turn.content})
         messages.append({"role": "user", "content": message})
 
+        t_start = time.perf_counter()
+        full_tokens: list[str] = []
         async for token in self.model.chat_stream(messages):
+            full_tokens.append(token)
             yield {"type": "token", "data": token}
+
+        latency_ms = (time.perf_counter() - t_start) * 1000.0
+        if getattr(self, "mlflow_tracker", None) and self.mlflow_tracker.is_available():
+            self.mlflow_tracker.log_chat_turn(
+                message=message,
+                response="".join(full_tokens),
+                latency_ms=latency_ms,
+                model=getattr(self.model, "model_name", "custom"),
+                chunks_retrieved=len(merged_chunks) if "merged_chunks" in locals() else len(live_tool_chunks),
+                graph_triples=len(merged_triples) if "merged_triples" in locals() else len(live_tool_triples),
+                tools_executed=executed_tools,
+            )
 
         yield {"type": "done", "data": {}}
 

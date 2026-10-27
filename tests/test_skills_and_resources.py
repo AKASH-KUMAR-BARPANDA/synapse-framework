@@ -6,11 +6,9 @@ import tempfile
 from pathlib import Path
 
 # 1. Test standard and PascalCase imports
-from synapse.skills import Skill, make_skill, makeskills
+from synapse.skills import makeskills
 from Synapse.skills import makeskills as pascal_makeskills
 from synapse.resource import Resource
-from Synapse.resource import Resource as PascalResource
-from synapse.resources import Resource as PluralResource
 from synapse import BaseApp, OllamaModel
 from langchain_core.documents import Document
 
@@ -124,7 +122,7 @@ def test_base_app_skills_and_resource_wiring():
     assert len(app.list_skills()) == 2
     assert coder_skill.name == "Clean Coder"
 
-    new_res = app.add_resource("Extra dynamic resource note")
+    app.add_resource("Extra dynamic resource note")
     assert len(app.list_resources()) == 2
     print("    ✓ Dynamic app.add_skill() and app.add_resource() verified!")
 
@@ -151,8 +149,52 @@ def test_base_app_skills_and_resource_wiring():
     print("    ✓ FastAPI /skills, /resources, and enriched /health endpoints verified!")
 
 
+def test_premade_skills_and_templates():
+    from synapse.skills import SkillRegistry, SkillTemplate, list_premade_skills, load_premade_skill
+
+    # 1. Test listing premade skills
+    names = list_premade_skills()
+    assert "rag-analyst" in names
+    assert "knowledge-graph" in names
+    assert "mcp-orchestrator" in names
+    assert "mlflow-evaluator" in names
+    assert "template" in names
+
+    # 2. Test loading premade skills
+    for name in names:
+        sk = load_premade_skill(name)
+        assert sk.name
+        assert sk.instructions
+        assert sk.format_prompt()
+
+    # 3. Test SkillTemplate
+    tmpl = SkillTemplate.get_template(
+        name="api-tester",
+        description="Tests REST and GraphQL APIs",
+        tags=["api", "testing"],
+    )
+    assert "name: api-tester" in tmpl
+    assert "description: Tests REST and GraphQL APIs" in tmpl
+
+    created_skill = SkillTemplate.create(
+        name="api-tester",
+        description="Tests REST endpoints",
+        instructions="Always check HTTP 200 responses.",
+    )
+    assert created_skill.name == "api-tester"
+    assert "HTTP 200" in created_skill.instructions
+
+    # 4. Test SkillRegistry
+    registry = SkillRegistry()
+    registry.register(created_skill)
+    assert len(registry) == 1
+    assert registry.get("api-tester") is not None
+    assert registry.get("api-tester").name == "api-tester"
+
+
 if __name__ == "__main__":
     test_skills_creation_and_parsing()
     test_resource_ingestion_and_chaining()
     test_base_app_skills_and_resource_wiring()
+    test_premade_skills_and_templates()
     print("\n🎉 ALL SYNAPSE SKILLS & RESOURCE TESTS PASSED!")

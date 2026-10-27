@@ -1,5 +1,21 @@
-"""Skills module for specialized agent instructions and domain personas."""
+"""Skills module for specialized agent instructions, templates, and domain personas."""
 
-from synapse.skills.skill import Skill, make_skill, makeskills
+from synapse.skills.skill import (
+    Skill,
+    SkillRegistry,
+    SkillTemplate,
+    list_premade_skills,
+    load_premade_skill,
+    make_skill,
+    makeskills,
+)
 
-__all__ = ["Skill", "make_skill", "makeskills"]
+__all__ = [
+    "Skill",
+    "SkillRegistry",
+    "SkillTemplate",
+    "list_premade_skills",
+    "load_premade_skill",
+    "make_skill",
+    "makeskills",
+]

@@ -40,6 +40,7 @@ class NetworkXGraph(BaseGraphStore):
         entity_type: str = "Default",
         color: str | None = None,
         attributes: dict[str, Any] | None = None,
+        auto_save: bool = True,
     ) -> None:
         """Adds or updates an entity node in the graph."""
         clean_name = name.strip()
@@ -62,7 +63,8 @@ class NetworkXGraph(BaseGraphStore):
         else:
             self.graph.add_node(clean_name, **node_data)
 
-        self.save()
+        if auto_save:
+            self.save()
 
     def add_relation(
         self,
@@ -72,6 +74,7 @@ class NetworkXGraph(BaseGraphStore):
         source_type: str = "Default",
         target_type: str = "Default",
         metadata: dict[str, Any] | None = None,
+        auto_save: bool = True,
     ) -> None:
         """Adds a directed relation edge between source and target entities."""
         s = source.strip()
@@ -81,14 +84,34 @@ class NetworkXGraph(BaseGraphStore):
         if not s or not t:
             return
 
-        self.add_node_entity(s, entity_type=source_type)
-        self.add_node_entity(t, entity_type=target_type)
+        self.add_node_entity(s, entity_type=source_type, auto_save=False)
+        self.add_node_entity(t, entity_type=target_type, auto_save=False)
 
         edge_data: dict[str, Any] = {"relation": r}
         if metadata:
             edge_data.update(metadata)
 
         self.graph.add_edge(s, t, **edge_data)
+        if auto_save:
+            self.save()
+
+    def add_relations(
+        self,
+        relations: list[dict[str, Any] | tuple[str, str, str]],
+    ) -> None:
+        """Batch-adds multiple relation triples with a single atomic disk save."""
+        for item in relations:
+            if isinstance(item, (tuple, list)) and len(item) >= 3:
+                s, r, t = str(item[0]), str(item[1]), str(item[2])
+                self.add_relation(s, r, t, auto_save=False)
+            elif isinstance(item, dict):
+                s = str(item.get("source", ""))
+                r = str(item.get("relation", "CONNECTED_TO"))
+                t = str(item.get("target", ""))
+                st = str(item.get("source_type", "Default"))
+                tt = str(item.get("target_type", "Default"))
+                meta = item.get("metadata")
+                self.add_relation(s, r, t, source_type=st, target_type=tt, metadata=meta, auto_save=False)
         self.save()
 
     def find_relation_for(self, entity: str) -> list[str]:

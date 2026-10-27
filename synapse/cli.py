@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import os
+import sys
 from pathlib import Path
 
 from synapse.app import BaseApp
@@ -28,14 +30,14 @@ def build_default_app(data_dir: str = "data") -> BaseApp:
 
 
 def main() -> None:
-    """CLI entrypoint: `synapse`, `synapse mcp`, or `python -m synapse.cli`."""
+    """CLI entrypoint: `synapse`, `synapse mcp`, `synapse serve`, or `python -m synapse.cli`."""
     parser = argparse.ArgumentParser(
         description="Synapse — Multi-MCP & Hybrid RAG Framework",
     )
     parser.add_argument(
         "subcommand",
         nargs="?",
-        default="serve",
+        default=None,
         choices=["serve", "mcp", "export"],
         help="Action to run: 'serve' (web inspector/API), 'mcp' (stdio server for Claude/Cursor), or 'export' (generate config)",
     )
@@ -72,15 +74,32 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-    app = build_default_app(data_dir=args.data_dir)
 
-    if args.mcp or args.subcommand == "mcp":
-        # Run stdio MCP server for Claude Desktop / Cursor
+    # Intelligent Auto-Detection:
+    # If subcommand is not specified and stdin is a pipe (e.g. Claude Desktop, Cursor,
+    # or MCP Registry Validator invoking `uvx synapse-framework`), default to 'mcp' stdio.
+    # Otherwise, default to interactive 'serve'.
+    subcmd = args.subcommand
+    if subcmd is None:
+        if args.mcp:
+            subcmd = "mcp"
+        elif not sys.stdin.isatty():
+            subcmd = "mcp"
+        else:
+            subcmd = "serve"
+
+    if subcmd == "mcp" or args.mcp:
+        # Guarantee 100% clean stdout for JSON-RPC MCP frames
+        os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+        os.environ["TOKENIZERS_PARALLELISM"] = "false"
+        app = build_default_app(data_dir=args.data_dir)
         app.run_mcp(transport="stdio")
-    elif args.subcommand == "export":
+    elif subcmd == "export":
+        app = build_default_app(data_dir=args.data_dir)
         cfg_path = MCPExporter.save_claude_desktop_config(app, filepath=args.output)
         print(f"✓ Claude Desktop config saved to: {cfg_path}")
     else:
+        app = build_default_app(data_dir=args.data_dir)
         app.run(host=args.host, port=args.port, reload=args.reload)
 
 

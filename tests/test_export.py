@@ -16,7 +16,6 @@ from fastapi.testclient import TestClient
 from Synapse import BaseApp
 from Synapse.connectors import makeconnectors
 from Synapse.export import GraphExporter, MCPExporter, graphexporter, mcpexporter
-from Synapse.graph import networkx
 from Synapse.models import OllamaModel
 
 

@@ -19,6 +19,8 @@ from synapse import resource as resource
 from synapse import resource as resources
 from synapse import skills as skills
 from synapse import storage as storage
+from synapse import telemetry as telemetry
+from synapse import telemetry as mlflow
 from synapse.app import BaseApp, SynapseApp
 from synapse.connectors import (
     BaseConnector,
@@ -86,7 +88,15 @@ from synapse.models import (
 from synapse.oauth import GoogleOAuthService, NotionAuthService
 from synapse.rag import DocumentChunker, HybridRAGEngine
 from synapse.resource import Resource
-from synapse.skills import Skill, make_skill, makeskills
+from synapse.skills import (
+    Skill,
+    SkillRegistry,
+    SkillTemplate,
+    list_premade_skills,
+    load_premade_skill,
+    make_skill,
+    makeskills,
+)
 from synapse.storage import (
     LocalVectorStorage,
     LocalVectorStore,
@@ -94,8 +104,13 @@ from synapse.storage import (
     VectorStorage,
     vectorStorage,
 )
+from synapse.telemetry import (
+    MLflowTracker,
+    get_tracker,
+    track_run,
+)
 
-__version__ = "0.2.4"
+__version__ = "0.2.5"
 
 # Register module aliases in sys.modules
 _this = sys.modules[__name__]
@@ -120,6 +135,9 @@ sys.modules["Synapse.skills"] = sys.modules["synapse.skills"]
 sys.modules["Synapse.resource"] = sys.modules["synapse.resource"]
 sys.modules["Synapse.resources"] = sys.modules["synapse.resource"]
 sys.modules["synapse.resources"] = sys.modules["synapse.resource"]
+sys.modules["Synapse.telemetry"] = sys.modules["synapse.telemetry"]
+sys.modules["synapse.mlflow"] = sys.modules["synapse.telemetry"]
+sys.modules["Synapse.mlflow"] = sys.modules["synapse.telemetry"]
 
 __all__ = [
     "BaseApp",
@@ -145,6 +163,7 @@ __all__ = [
     "LocalVectorStore",
     "MCPConnector",
     "MCPExporter",
+    "MLflowTracker",
     "Neo4jGraph",
     "NetworkXGraph",
     "NotionAuthService",
@@ -161,6 +180,8 @@ __all__ = [
     "QdrantDB",
     "Resource",
     "Skill",
+    "SkillRegistry",
+    "SkillTemplate",
     "SynapseApp",
     "VectorStorage",
     "__version__",
@@ -174,17 +195,21 @@ __all__ = [
     "gemimi",
     "gemini",
     "get_model",
+    "get_tracker",
     "graph",
     "graphexporter",
     "huggingface_embeddings",
     "in_memory",
     "in_memory_graph",
+    "list_premade_skills",
+    "load_premade_skill",
     "make_connector",
     "make_skill",
     "makeconnectors",
     "makeskills",
     "mcpexporter",
     "minilm",
+    "mlflow",
     "model",
     "models",
     "neo4j",
@@ -203,5 +228,7 @@ __all__ = [
     "resources",
     "skills",
     "storage",
+    "telemetry",
+    "track_run",
     "vectorStorage",
 ]

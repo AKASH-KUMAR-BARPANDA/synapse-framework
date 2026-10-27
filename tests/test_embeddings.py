@@ -14,7 +14,7 @@ from langchain_core.documents import Document
 # 1. Test PascalCase and lowercase imports as requested by the user
 from Synapse import BaseApp
 from Synapse.database import chromadb, in_memory, qdrant
-from Synapse.embeddings import fastembed, minilm, resolve_embedding
+from Synapse.embeddings import minilm, resolve_embedding
 from Synapse.models import OllamaModel
 from Synapse.resource import Resource
 from Synapse.storage import vectorStorage

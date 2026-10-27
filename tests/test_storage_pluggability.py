@@ -9,7 +9,6 @@ from pathlib import Path
 # Add project root to sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from langchain_core.documents import Document
 
 # Test both PascalCase and lowercase imports as requested by the user
 from Synapse import BaseApp

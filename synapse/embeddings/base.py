@@ -2,9 +2,70 @@
 
 from __future__ import annotations
 
+import os
+import warnings
 from typing import Any
 
+from langchain_core.embeddings import Embeddings
+
 from synapse.config import DEFAULT_EMBEDDING_MODEL
+
+
+class LazyFastEmbedEmbeddings(Embeddings):
+    """Zero-overhead lazy wrapper for FastEmbed ONNX local embeddings.
+
+    Defers model download and ONNX runtime initialization until the first
+    `embed_documents` or `embed_query` call. This prevents app startup freezes
+    and keeps stdout completely clean for MCP stdio protocol communication.
+    """
+
+    def __init__(
+        self,
+        model_name: str = "BAAI/bge-small-en-v1.5",
+        max_length: int | None = None,
+        **kwargs: Any,
+    ) -> None:
+        self.model_name = model_name
+        self.max_length = max_length
+        self.kwargs = kwargs
+        self._inner: Embeddings | None = None
+
+    def _get_inner(self) -> Embeddings:
+        if self._inner is None:
+            # Set environment variable to suppress progress bars that corrupt MCP stdio
+            os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+            os.environ["TOKENIZERS_PARALLELISM"] = "false"
+            try:
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=DeprecationWarning)
+                    from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
+
+                extra_args: dict[str, Any] = dict(self.kwargs)
+                if self.max_length is not None:
+                    extra_args["max_length"] = self.max_length
+                self._inner = FastEmbedEmbeddings(model_name=self.model_name, **extra_args)
+            except Exception as e:
+                raise RuntimeError(
+                    f"Failed to load FastEmbed model '{self.model_name}': {e}. "
+                    "Ensure 'fastembed' is installed."
+                ) from e
+        return self._inner
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        """Embeds a list of documents."""
+        return self._get_inner().embed_documents(texts)
+
+    def embed_query(self, text: str) -> list[float]:
+        """Embeds a query string."""
+        return self._get_inner().embed_query(text)
+
+    async def aembed_documents(self, texts: list[str]) -> list[list[float]]:
+        """Asynchronously embeds documents."""
+        return await self._get_inner().aembed_documents(texts)
+
+    async def aembed_query(self, text: str) -> list[float]:
+        """Asynchronously embeds a query."""
+        return await self._get_inner().aembed_query(text)
 
 
 class EmbeddingModelRegistry:
@@ -43,7 +104,7 @@ def fastembed(
     max_length: int | None = None,
     **kwargs: Any,
 ) -> Any:
-    """Initializes FastEmbed ONNX local embeddings (ultra-fast, zero-PyTorch).
+    """Initializes FastEmbed ONNX local embeddings (ultra-fast, zero-PyTorch, lazy-loaded).
 
     Args:
         model_name: Model name or HuggingFace ID (e.g. 'BAAI/bge-small-en-v1.5',
@@ -52,21 +113,14 @@ def fastembed(
         **kwargs: Extra arguments forwarded to FastEmbedEmbeddings.
 
     Returns:
-        FastEmbedEmbeddings instance.
+        LazyFastEmbedEmbeddings instance (defers loading until first embedding call).
     """
     resolved_model = EmbeddingModelRegistry.ALIASES.get(model_name.lower(), model_name)
-    try:
-        from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
-
-        extra_args: dict[str, Any] = dict(kwargs)
-        if max_length is not None:
-            extra_args["max_length"] = max_length
-        return FastEmbedEmbeddings(model_name=resolved_model, **extra_args)
-    except Exception as e:
-        raise RuntimeError(
-            f"Failed to load FastEmbed model '{resolved_model}': {e}. "
-            "Ensure 'fastembed' is installed."
-        ) from e
+    return LazyFastEmbedEmbeddings(
+        model_name=resolved_model,
+        max_length=max_length,
+        **kwargs,
+    )
 
 
 def minilm(

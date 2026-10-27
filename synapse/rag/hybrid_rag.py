@@ -23,13 +23,25 @@ class HybridRAGEngine:
         self.graph_store = graph_store
 
     def _extract_candidate_entities(self, query: str) -> list[str]:
-        candidates = set()
+        candidates: set[str] = set()
         if self.graph_store and hasattr(self.graph_store, "graph") and hasattr(self.graph_store.graph, "nodes"):
-            existing_nodes = list(self.graph_store.graph.nodes)
             query_lower = query.lower()
-            for node in existing_nodes:
-                if str(node).lower() in query_lower:
-                    candidates.add(str(node))
+            nodes = self.graph_store.graph.nodes
+            num_nodes = len(nodes)
+            if num_nodes <= 100:
+                for node in nodes:
+                    if str(node).lower() in query_lower:
+                        candidates.add(str(node))
+            else:
+                # Optimized O(M) n-gram token lookup for large graphs
+                node_map = {str(n).lower(): str(n) for n in nodes}
+                tokens = re.findall(r"\b[a-zA-Z0-9_-]+\b", query_lower)
+                # Check 1-grams, 2-grams, 3-grams
+                for n_gram_size in range(1, 4):
+                    for i in range(len(tokens) - n_gram_size + 1):
+                        gram = " ".join(tokens[i : i + n_gram_size])
+                        if gram in node_map:
+                            candidates.add(node_map[gram])
 
         matches = re.findall(r"\b[A-Z][a-zA-Z0-9_-]+\b", query)
         for match in matches:

@@ -318,4 +318,155 @@ def makeskills(
 # Developer-friendly alias
 make_skill = makeskills
 
-__all__ = ["Skill", "make_skill", "makeskills"]
+
+class SkillTemplate:
+    """Helper for generating standardized SKILL.md documents and Skill instances."""
+
+    @staticmethod
+    def get_template(
+        name: str = "custom-skill",
+        description: str = "Description of capability and activation criteria",
+        tags: list[str] | None = None,
+        tools: list[str] | None = None,
+    ) -> str:
+        """Generates a standard markdown string with YAML frontmatter for a new skill."""
+        tag_list = tags or ["agent-skill", "custom"]
+        tool_list = tools or []
+        tags_str = ", ".join(tag_list)
+        tools_str = ", ".join(tool_list)
+        return (
+            f"---\n"
+            f"name: {name}\n"
+            f"description: {description}\n"
+            f"tags: [{tags_str}]\n"
+            f"tools: [{tools_str}]\n"
+            f"---\n\n"
+            f"# {name.title().replace('-', ' ')}\n\n"
+            f"## Overview\n"
+            f"Detailed description of the skill and goals.\n\n"
+            f"## Operational Protocol\n"
+            f"1. **Analyze Input**: Extract user parameters.\n"
+            f"2. **Execute Actions**: Call necessary tools and retrieve context.\n"
+            f"3. **Format Output**: Provide grounded, structured response.\n"
+        )
+
+    @classmethod
+    def create(
+        cls,
+        name: str,
+        description: str = "",
+        instructions: str = "",
+        tags: list[str] | None = None,
+        tools: list[Any] | None = None,
+        **metadata: Any,
+    ) -> Skill:
+        """Creates a Skill instance with template validation."""
+        return Skill(
+            name=name,
+            description=description,
+            instructions=instructions,
+            tags=tags,
+            tools=tools,
+            metadata=metadata,
+        )
+
+
+PREMADE_SKILLS: dict[str, str] = {
+    "rag-analyst": "rag_analyst/SKILL.md",
+    "rag_analyst": "rag_analyst/SKILL.md",
+    "knowledge-graph": "knowledge_graph/SKILL.md",
+    "knowledge_graph": "knowledge_graph/SKILL.md",
+    "mcp-orchestrator": "mcp_orchestrator/SKILL.md",
+    "mcp_orchestrator": "mcp_orchestrator/SKILL.md",
+    "mlflow-evaluator": "mlflow_evaluator/SKILL.md",
+    "mlflow_evaluator": "mlflow_evaluator/SKILL.md",
+    "template": "template/SKILL.md",
+    "synapse": "SKILL.md",
+}
+
+
+def list_premade_skills() -> list[str]:
+    """Returns a list of unique names of all premade skills bundled with Synapse."""
+    return [
+        "rag-analyst",
+        "knowledge-graph",
+        "mcp-orchestrator",
+        "mlflow-evaluator",
+        "template",
+    ]
+
+
+def load_premade_skill(name: str) -> Skill:
+    """Loads a pre-built, specialized agent skill from Synapse bundled skills."""
+    normalized = name.strip().lower().replace("_", "-")
+    rel_path = PREMADE_SKILLS.get(normalized) or PREMADE_SKILLS.get(name.strip().lower())
+    if not rel_path:
+        raise ValueError(
+            f"Unknown premade skill '{name}'. Available: {list_premade_skills()}"
+        )
+
+    # 1. Check package internal premade directory
+    package_file = Path(__file__).parent / "premade" / rel_path
+    if package_file.exists():
+        return Skill.from_file(package_file)
+
+    # 2. Check repo root skills directory
+    repo_file = Path(__file__).parent.parent.parent / "skills" / rel_path
+    if repo_file.exists():
+        return Skill.from_file(repo_file)
+
+    # 3. Check single file in repo root
+    root_skill = Path(__file__).parent.parent.parent / "SKILL.md"
+    if (normalized == "synapse" or rel_path == "SKILL.md") and root_skill.exists():
+        return Skill.from_file(root_skill)
+
+    raise FileNotFoundError(f"Premade skill file not found for '{name}' (looked in {package_file})")
+
+
+class SkillRegistry:
+    """Registry and directory scanner for modular agent skills."""
+
+    def __init__(self, skills: list[Skill] | None = None) -> None:
+        self._skills: dict[str, Skill] = {}
+        for s in skills or []:
+            self.register(s)
+
+    def register(self, skill: Skill) -> None:
+        """Registers a Skill in the registry."""
+        self._skills[skill.name.lower()] = skill
+
+    def get(self, name: str) -> Skill | None:
+        """Retrieves a registered Skill by name."""
+        return self._skills.get(name.lower())
+
+    def list(self) -> list[Skill]:
+        """Returns all registered skills."""
+        return list(self._skills.values())
+
+    def __len__(self) -> int:
+        return len(self._skills)
+
+    @classmethod
+    def discover(cls, directory: str | Path) -> SkillRegistry:
+        """Scans a directory recursively for SKILL.md files and registers them."""
+        reg = cls()
+        dir_path = Path(directory)
+        if dir_path.exists() and dir_path.is_dir():
+            for f in dir_path.rglob("*.md"):
+                if f.name.upper() == "SKILL.MD" or f.name.endswith(".skill.md"):
+                    try:
+                        reg.register(Skill.from_file(f))
+                    except Exception:
+                        pass
+        return reg
+
+
+__all__ = [
+    "Skill",
+    "SkillRegistry",
+    "SkillTemplate",
+    "list_premade_skills",
+    "load_premade_skill",
+    "make_skill",
+    "makeskills",
+]

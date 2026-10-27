@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import sys
 from pathlib import Path
 
@@ -11,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 # 1. Test PascalCase and lowercase imports as requested by the user
 from Synapse import BaseApp, SynapseApp, __version__
-from Synapse.model import Gemimi, Gemini, ollama, openAI
+from Synapse.model import Gemini, ollama, openAI
 from Synapse.connectors import (
     GmailConnectors,
     GooglePhotosConnectors,
@@ -20,7 +19,7 @@ from Synapse.connectors import (
     makeconnectors,
 )
 from Synapse.Oauth import GoogleOAuthService
-from Synapse.skills import Skill, make_skill, makeskills
+from Synapse.skills import Skill, makeskills
 from Synapse.resource import Resource
 
 

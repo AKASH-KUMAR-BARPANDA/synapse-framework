@@ -142,6 +142,9 @@ uv add synapse-framework
 ### Optional Extras
 
 ```bash
+# Add MLflow experiment tracking & latency telemetry
+pip install "synapse-framework[mlflow]"
+
 # Add Qdrant vector database support
 pip install "synapse-framework[qdrant]"
 
@@ -303,6 +306,66 @@ app = BaseApp(
     model=ollama("qwen2.5:0.5b"),
     resource=docs,
 )
+```
+
+---
+
+## 🎯 Modular Agent Skills & Premade Templates
+
+Synapse packages agent capabilities, domain knowledge, and behavioral guidelines into standard `SKILL.md` files:
+
+```python
+from synapse.skills import load_premade_skill, list_premade_skills, SkillTemplate, makeskills
+
+# 1. Inspect bundled premade skills
+print(list_premade_skills())
+# Output: ['rag-analyst', 'knowledge-graph', 'mcp-orchestrator', 'mlflow-evaluator', 'template']
+
+# 2. Load a pre-built domain skill
+analyst_skill = load_premade_skill("rag-analyst")
+
+# 3. Generate a customized skill from the standardized template
+custom_md = SkillTemplate.get_template(
+    name="sql-optimizer",
+    description="Analyzes execution plans and suggests composite indexes",
+    tags=["sql", "postgres", "performance"],
+)
+sql_skill = makeskills(custom_md)
+
+# 4. Attach skills directly to BaseApp (auto-exposed as callable MCP Prompts!)
+app = BaseApp(
+    skills=[analyst_skill, sql_skill],
+)
+```
+
+---
+
+## 📊 MLflow Experiment Tracking & Telemetry
+
+Benchmark Hybrid RAG latency, evaluate chunk retrieval counts, track prompts, and log interactive graph artifacts directly to MLflow:
+
+```python
+from synapse import BaseApp
+from synapse.telemetry import MLflowTracker, track_run
+
+# 1. Enable automated tracking across all /chat turns in BaseApp:
+app = BaseApp(
+    title="Customer AI Assistant",
+    mlflow_tracking=True,
+    mlflow_experiment="customer_support_rag",
+)
+
+# 2. Or use the standalone context manager & decorator:
+tracker = MLflowTracker(experiment_name="rag_benchmarks")
+
+with tracker.start_run("eval_bge_embeddings"):
+    tracker.log_params({"top_k": 5, "chunk_size": 280})
+    tracker.log_metrics({"latency_ms": 42.1, "chunks_retrieved": 5})
+    tracker.log_artifact("data/graph.json")
+
+@tracker.track(name="deep_search")
+def run_evaluation(query: str):
+    return app.rag_engine.retrieve_context(query)
 ```
 
 ---
