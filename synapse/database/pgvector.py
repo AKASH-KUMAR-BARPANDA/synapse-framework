@@ -62,6 +62,8 @@ class PGVectorDB(BaseVectorDB):
         query_embedding: list[float] | None = None,
     ) -> list[Document]:
         if self.store:
+            if filter_dict:
+                return self.store.similarity_search(query=query, k=k, filter=filter_dict)
             return self.store.similarity_search(query=query, k=k)
         return self._fallback.similarity_search(query=query, k=k, filter_dict=filter_dict)
 
@@ -72,7 +74,11 @@ class PGVectorDB(BaseVectorDB):
 
     def clear(self) -> None:
         if self.store:
-            pass
+            try:
+                if hasattr(self.store, "delete_collection"):
+                    self.store.delete_collection()
+            except Exception:
+                pass  # nosec B110
         else:
             self._fallback.clear()
 

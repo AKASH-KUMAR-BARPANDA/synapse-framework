@@ -73,6 +73,8 @@ class QdrantDB(BaseVectorDB):
         query_embedding: list[float] | None = None,
     ) -> list[Document]:
         if self.store:
+            if filter_dict:
+                return self.store.similarity_search(query=query, k=k, filter=filter_dict)
             return self.store.similarity_search(query=query, k=k)
         return self._fallback.similarity_search(query=query, k=k, filter_dict=filter_dict)
 
@@ -80,7 +82,12 @@ class QdrantDB(BaseVectorDB):
         if self.store:
             try:
                 res = self.client.get_collection(self.collection_name)
-                return getattr(res, "points_count", 0) or 0
+                return (
+                    getattr(res, "points_count", None)
+                    or getattr(res, "vectors_count", 0)
+                    or getattr(res, "indexed_vectors_count", 0)
+                    or 0
+                )
             except Exception:
                 return 0
         return self._fallback.count()

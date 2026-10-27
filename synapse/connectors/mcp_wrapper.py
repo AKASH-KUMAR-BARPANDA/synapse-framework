@@ -9,8 +9,13 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
+try:
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+except ImportError:
+    ClientSession = None  # type: ignore
+    StdioServerParameters = None  # type: ignore
+    stdio_client = None  # type: ignore
 
 from synapse.connectors.base import BaseConnector
 
@@ -78,11 +83,14 @@ class MCPConnector(BaseConnector):
         if env:
             merged_env.update(env)
 
-        self.server_params = StdioServerParameters(
-            command=exec_cmd,
-            args=exec_args,
-            env=merged_env,
-        )
+        if StdioServerParameters is not None:
+            self.server_params = StdioServerParameters(
+                command=exec_cmd,
+                args=exec_args,
+                env=merged_env,
+            )
+        else:
+            self.server_params = None
 
     def is_authenticated(self) -> bool:
         """Checks if the wrapped MCP server is configured and ready."""
@@ -95,6 +103,9 @@ class MCPConnector(BaseConnector):
         """Discovers tools exposed by the MCP server."""
         if self._tools_cache:
             return self._tools_cache
+
+        if self.server_params is None or stdio_client is None:
+            return self.static_tools
 
         try:
             async with stdio_client(self.server_params) as (
@@ -127,6 +138,11 @@ class MCPConnector(BaseConnector):
         arguments: dict[str, Any] | None = None,
     ) -> Any:
         """Invokes a tool on the MCP server over stdio."""
+        if self.server_params is None or stdio_client is None:
+            raise RuntimeError(
+                f"Cannot execute tool '{tool_name}': MCP client libraries are not installed or server_params is missing."
+            )
+
         async with stdio_client(self.server_params) as (
             read_stream,
             write_stream,

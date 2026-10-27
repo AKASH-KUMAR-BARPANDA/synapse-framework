@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import threading
 import warnings
 from typing import Any
 
@@ -29,26 +30,29 @@ class LazyFastEmbedEmbeddings(Embeddings):
         self.max_length = max_length
         self.kwargs = kwargs
         self._inner: Embeddings | None = None
+        self._lock = threading.Lock()
 
     def _get_inner(self) -> Embeddings:
         if self._inner is None:
-            # Set environment variable to suppress progress bars that corrupt MCP stdio
-            os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
-            os.environ["TOKENIZERS_PARALLELISM"] = "false"
-            try:
-                with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore", category=DeprecationWarning)
-                    from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
+            with self._lock:
+                if self._inner is None:
+                    # Set environment variable to suppress progress bars that corrupt MCP stdio
+                    os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+                    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+                    try:
+                        with warnings.catch_warnings():
+                            warnings.filterwarnings("ignore", category=DeprecationWarning)
+                            from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 
-                extra_args: dict[str, Any] = dict(self.kwargs)
-                if self.max_length is not None:
-                    extra_args["max_length"] = self.max_length
-                self._inner = FastEmbedEmbeddings(model_name=self.model_name, **extra_args)
-            except Exception as e:
-                raise RuntimeError(
-                    f"Failed to load FastEmbed model '{self.model_name}': {e}. "
-                    "Ensure 'fastembed' is installed."
-                ) from e
+                        extra_args: dict[str, Any] = dict(self.kwargs)
+                        if self.max_length is not None:
+                            extra_args["max_length"] = self.max_length
+                        self._inner = FastEmbedEmbeddings(model_name=self.model_name, **extra_args)
+                    except Exception as e:
+                        raise RuntimeError(
+                            f"Failed to load FastEmbed model '{self.model_name}': {e}. "
+                            "Ensure 'fastembed' is installed."
+                        ) from e
         return self._inner
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:

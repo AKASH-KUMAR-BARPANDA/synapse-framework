@@ -7,6 +7,7 @@ import json
 import os
 import time
 from collections.abc import AsyncGenerator, Sequence
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -247,8 +248,10 @@ class BaseApp:
         """Returns all registered connector instances."""
         return self.list_connectors()
 
-    def add_skill(self, skill: Skill | str | Path) -> Skill:
-        """Registers a Skill into this application."""
+    def add_skill(self, skill: Skill | str | Path | list[Any] | tuple[Any, ...]) -> Any:
+        """Registers a Skill or sequence of skills into this application."""
+        if isinstance(skill, (list, tuple)):
+            return [self.add_skill(s) for s in skill]
         sk = skill if isinstance(skill, Skill) else makeskills(skill)
         self._skills.append(sk)
         return sk
@@ -269,8 +272,10 @@ class BaseApp:
                 return s
         return None
 
-    def add_resource(self, resource: Resource | str | Path | Any) -> Resource:
-        """Registers and indexes a Resource into vector storage and knowledge graph."""
+    def add_resource(self, resource: Resource | str | Path | Any) -> Any:
+        """Registers and indexes a Resource or list of resources into vector storage and knowledge graph."""
+        if isinstance(resource, (list, tuple)) and not isinstance(resource, (str, Path)):
+            return [self.add_resource(r) for r in resource]
         res = resource if isinstance(resource, Resource) else Resource(documents=resource)
         self._resources.append(res)
         res.index_into(self.vector_store, self.graph_store)
@@ -645,10 +650,18 @@ class BaseApp:
         if self._fastapi_app is not None:
             return self._fastapi_app
 
+        app_ref = self
+
+        @asynccontextmanager
+        async def lifespan(_app: FastAPI):
+            yield
+            await app_ref.aclose()
+
         api = FastAPI(
             title=self.title,
             description=self.description,
             version=self.version,
+            lifespan=lifespan,
         )
 
         api.add_middleware(
@@ -988,6 +1001,30 @@ class BaseApp:
 
         self._fastapi_app = api
         return self._fastapi_app
+
+    async def aclose(self) -> None:
+        """Asynchronously cleans up model, vector database, and graph store resources."""
+        if hasattr(self.model, "close") and callable(self.model.close):
+            try:
+                await self.model.close()
+            except Exception:
+                pass  # nosec B110
+        if self.graph_store is not None and hasattr(self.graph_store, "driver") and self.graph_store.driver:
+            try:
+                self.graph_store.driver.close()
+            except Exception:
+                pass  # nosec B110
+
+    def close(self) -> None:
+        """Synchronously closes all application resources."""
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(self.aclose())
+            else:
+                loop.run_until_complete(self.aclose())
+        except Exception:
+            pass  # nosec B110
 
     def to_mcp_server(self, name: str | None = None) -> Any:
         """Converts all registered connectors into an official MCP Server instance."""

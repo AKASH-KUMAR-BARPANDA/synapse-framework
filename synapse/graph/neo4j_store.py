@@ -39,9 +39,10 @@ class Neo4jGraph(BaseGraphStore):
         entity_type: str = "Default",
         color: str | None = None,
         attributes: dict[str, Any] | None = None,
+        **kwargs: Any,
     ) -> None:
         if not self.driver:
-            return self._fallback.add_node_entity(name, entity_type, color, attributes)
+            return self._fallback.add_node_entity(name, entity_type, color, attributes, **kwargs)
 
         assigned_color = color or self.palette.get(
             entity_type, self.palette.get("Default", "#71717a")
@@ -65,10 +66,11 @@ class Neo4jGraph(BaseGraphStore):
         source_type: str = "Default",
         target_type: str = "Default",
         metadata: dict[str, Any] | None = None,
+        **kwargs: Any,
     ) -> None:
         if not self.driver:
             return self._fallback.add_relation(
-                source, relation, target, source_type, target_type, metadata
+                source, relation, target, source_type, target_type, metadata, **kwargs
             )
 
         self.add_node_entity(source, entity_type=source_type)

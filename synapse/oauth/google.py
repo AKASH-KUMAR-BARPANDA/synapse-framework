@@ -173,22 +173,38 @@ class GoogleOAuthService:
 
     @staticmethod
     def decode_mime_body(payload: dict[str, Any]) -> str:
-        """Decodes plain-text body from a Gmail MIME payload dictionary."""
-        if "parts" in payload:
-            for part in payload["parts"]:
+        """Decodes plain-text body from a Gmail MIME payload dictionary, supporting nested multiparts."""
+        def _extract_text(parts: list[dict[str, Any]]) -> str:
+            for part in parts:
                 if (
                     part.get("mimeType") == "text/plain"
                     and "data" in part.get("body", {})
                 ):
-                    raw_data = part["body"]["data"]
-                    return base64.urlsafe_b64decode(raw_data).decode(
-                        "utf-8", errors="ignore"
-                    )
+                    try:
+                        raw_data = part["body"]["data"]
+                        return base64.urlsafe_b64decode(raw_data).decode(
+                            "utf-8", errors="ignore"
+                        )
+                    except Exception:
+                        pass  # nosec B110
+                if "parts" in part and isinstance(part["parts"], list):
+                    nested = _extract_text(part["parts"])
+                    if nested:
+                        return nested
+            return ""
 
-        if "body" in payload and "data" in payload["body"]:
-            raw_data = payload["body"]["data"]
-            return base64.urlsafe_b64decode(raw_data).decode(
-                "utf-8", errors="ignore"
-            )
+        if "parts" in payload and isinstance(payload["parts"], list):
+            extracted = _extract_text(payload["parts"])
+            if extracted:
+                return extracted
+
+        if "body" in payload and "data" in payload.get("body", {}):
+            try:
+                raw_data = payload["body"]["data"]
+                return base64.urlsafe_b64decode(raw_data).decode(
+                    "utf-8", errors="ignore"
+                )
+            except Exception:
+                pass  # nosec B110
 
         return ""

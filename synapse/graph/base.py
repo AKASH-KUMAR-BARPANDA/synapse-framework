@@ -20,6 +20,7 @@ class BaseGraphStore(ABC):
         entity_type: str = "Default",
         color: str | None = None,
         attributes: dict[str, Any] | None = None,
+        **kwargs: Any,
     ) -> None:
         """Adds or updates an entity node in the graph."""
 
@@ -32,6 +33,7 @@ class BaseGraphStore(ABC):
         source_type: str = "Default",
         target_type: str = "Default",
         metadata: dict[str, Any] | None = None,
+        **kwargs: Any,
     ) -> None:
         """Adds a directed relation edge between source and target entities."""
 
