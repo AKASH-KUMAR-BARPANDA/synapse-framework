@@ -34,6 +34,7 @@ class OllamaModel(BaseModelProvider):
         temperature: float = DEFAULT_TEMPERATURE,
         num_ctx: int = 4096,
         timeout: float = 60.0,
+        num_predict: int = 256,
     ) -> None:
         """Initializes the Ollama model provider.
 
@@ -43,11 +44,13 @@ class OllamaModel(BaseModelProvider):
             temperature: Sampling temperature. Defaults to 0.1.
             num_ctx: Context window size. Defaults to 4096.
             timeout: HTTP request timeout in seconds. Defaults to 60.0.
+            num_predict: Maximum tokens to generate per response turn. Defaults to 256.
         """
         super().__init__(model_name=model, temperature=temperature)
         self.base_url = base_url.rstrip("/")
         self.num_ctx = num_ctx
         self.timeout = timeout
+        self.num_predict = num_predict
 
     async def chat_stream(
         self,
@@ -71,6 +74,7 @@ class OllamaModel(BaseModelProvider):
             "options": {
                 "temperature": temp,
                 "num_ctx": self.num_ctx,
+                "num_predict": self.num_predict,
             },
         }
 
@@ -131,6 +135,7 @@ class OllamaModel(BaseModelProvider):
             "options": {
                 "temperature": temp,
                 "num_ctx": self.num_ctx,
+                "num_predict": self.num_predict,
             },
         }
         if format:
