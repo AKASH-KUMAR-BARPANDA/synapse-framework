@@ -89,7 +89,7 @@ include = ["synapse", "synapse.*"]
 exclude = ["tests*", "assets*"]
 
 [tool.setuptools.package-data]
-synapse = ["skills/premade/**/*.md", "skills/premade/*.md"]
+synapse = ["py.typed", "skills/premade/**/*.md", "skills/premade/*.md"]
 
 [tool.ruff]
 line-length = 100
