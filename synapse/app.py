@@ -96,8 +96,10 @@ class BaseApp:
     def __init__(
         self,
         title: str = "Synapse AI",
+        name: str | None = None,
+        app_name: str | None = None,
         description: str = "Multi-MCP & Hybrid RAG Framework",
-        version: str = "0.2.4",
+        version: str = "0.2.5",
         model: BaseModelProvider | None = None,
         connectors: list[BaseConnector] | None = None,
         skills: Skill | Sequence[Skill] | str | Path | None = None,
@@ -117,6 +119,8 @@ class BaseApp:
 
         Args:
             title: Application title displayed in API docs and inspector.
+            name: Developer alias for title / application name.
+            app_name: Developer alias for title / application name.
             description: Application summary string.
             version: Semantic version string.
             model: BaseModelProvider instance (defaults to OllamaModel).
@@ -136,7 +140,7 @@ class BaseApp:
             mlflow_experiment: Custom MLflow experiment name.
             mlflow_tracking_uri: Optional remote or local MLflow tracking server URI.
         """
-        self.title = title
+        self.title = app_name or name or title
         self.description = description
         self.version = version
 
@@ -231,6 +235,24 @@ class BaseApp:
 
         self._fastapi_app: FastAPI | None = None
 
+    @property
+    def name(self) -> str:
+        """Application name/title."""
+        return self.title
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self.title = value
+
+    @property
+    def app_name(self) -> str:
+        """Application name/title."""
+        return self.title
+
+    @app_name.setter
+    def app_name(self, value: str) -> None:
+        self.title = value
+
     def add_connector(self, connector: BaseConnector) -> None:
         """Registers a connector into this application."""
         self._connectors[connector.name] = connector
@@ -247,6 +269,50 @@ class BaseApp:
     def connectors(self) -> list[BaseConnector]:
         """Returns all registered connector instances."""
         return self.list_connectors()
+
+    @property
+    def tools(self) -> list[dict[str, Any]]:
+        """Returns registered tools across all connectors."""
+        collected: list[dict[str, Any]] = []
+        for conn in self._connectors.values():
+            if hasattr(conn, "_cached_schemas") and isinstance(conn._cached_schemas, list):
+                collected.extend(conn._cached_schemas)
+            elif hasattr(conn, "tools_dict") and isinstance(conn.tools_dict, dict):
+                for tname in conn.tools_dict.keys():
+                    collected.append({
+                        "server": conn.name,
+                        "name": tname,
+                        "connector": conn.name,
+                    })
+            elif getattr(conn, "default_tool", None):
+                collected.append({
+                    "server": conn.name,
+                    "name": conn.default_tool,
+                    "description": conn.description,
+                    "connector": conn.name,
+                })
+        return collected
+
+    async def list_tools(self) -> list[dict[str, Any]]:
+        """Asynchronously discovers all tool schemas across registered connectors."""
+        if not self._connectors:
+            return []
+        tool_lists = await asyncio.gather(
+            *(conn.list_tools() for conn in self._connectors.values()),
+            return_exceptions=True,
+        )
+        collected: list[dict[str, Any]] = []
+        for conn, tools in zip(self._connectors.values(), tool_lists):
+            if isinstance(tools, list):
+                collected.extend(tools)
+            elif getattr(conn, "default_tool", None):
+                collected.append({
+                    "server": conn.name,
+                    "name": conn.default_tool,
+                    "description": conn.description,
+                    "connector": conn.name,
+                })
+        return collected
 
     def add_skill(self, skill: Skill | str | Path | list[Any] | tuple[Any, ...]) -> Any:
         """Registers a Skill or sequence of skills into this application."""
