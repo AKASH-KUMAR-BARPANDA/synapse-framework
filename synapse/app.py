@@ -95,52 +95,45 @@ class BaseApp:
 
     def __init__(
         self,
-        title: str = "Synapse AI",
-        name: str | None = None,
-        app_name: str | None = None,
+        name: str = "Synapse AI",
         description: str = "Multi-MCP & Hybrid RAG Framework",
         version: str = "0.2.5",
         model: BaseModelProvider | None = None,
         connectors: list[BaseConnector] | None = None,
         skills: Skill | Sequence[Skill] | str | Path | None = None,
-        resource: Resource | Sequence[Resource] | str | Path | Any | None = None,
-        resources: Sequence[Resource] | None = None,
-        persistent_storage: VectorStorage | BaseVectorDB | bool | None = None,
-        Visualize_graph: BaseGraphStore | bool | None = None,
+        resources: Resource | Sequence[Resource] | str | Path | Any | None = None,
         vector_store: VectorStorage | BaseVectorDB | bool | None = None,
         graph_store: BaseGraphStore | bool | None = None,
-        visualize_graph: BaseGraphStore | bool | None = None,
         data_dir: str | Path | None = None,
         mlflow_tracking: bool = False,
         mlflow_experiment: str | None = None,
         mlflow_tracking_uri: str | None = None,
+        *,
+        title: str | None = None,
+        app_name: str | None = None,
+        resource: Resource | Sequence[Resource] | str | Path | Any | None = None,
+        persistent_storage: VectorStorage | BaseVectorDB | bool | None = None,
+        Visualize_graph: BaseGraphStore | bool | None = None,
+        visualize_graph: BaseGraphStore | bool | None = None,
     ) -> None:
         """Initializes the BaseApp instance.
 
         Args:
-            title: Application title displayed in API docs and inspector.
-            name: Developer alias for title / application name.
-            app_name: Developer alias for title / application name.
+            name: Application name displayed in API docs and inspector.
             description: Application summary string.
             version: Semantic version string.
             model: BaseModelProvider instance (defaults to OllamaModel).
             connectors: List of BaseConnector instances (e.g. GmailConnector, NotionConnector).
             skills: Skill, list of Skills, or path(s) to markdown skill files.
-            resource: Resource instance, document(s), or file path(s) to index.
-            resources: Optional list of Resource instances.
-            persistent_storage: Optional vector storage instance (e.g. vectorStorage(database=chromadb(...)))
-                or True for default ChromaDB. Defaults to None (storage disabled, 0 files created).
-            Visualize_graph: Optional knowledge graph store (e.g. networkx(...) or neo4j(...))
-                or True for default NetworkX graph. Defaults to None (graph disabled, 0 files created).
-            vector_store: Alias for persistent_storage.
-            graph_store: Alias for Visualize_graph.
-            visualize_graph: Lowercase alias for Visualize_graph.
+            resources: Resource instance, document(s), or file path(s) to index.
+            vector_store: Optional vector storage instance or True for default ChromaDB.
+            graph_store: Optional knowledge graph store or True for default NetworkX graph.
             data_dir: Optional custom storage directory.
             mlflow_tracking: Enables automated MLflow experiment and latency tracking.
             mlflow_experiment: Custom MLflow experiment name.
             mlflow_tracking_uri: Optional remote or local MLflow tracking server URI.
         """
-        self.title = app_name or name or title
+        self.name = app_name or title or name
         self.description = description
         self.version = version
 
@@ -214,19 +207,16 @@ class BaseApp:
                     pass  # nosec B110
 
         self._resources: list[Resource] = []
-        if resource is not None:
-            if isinstance(resource, (list, tuple)):
-                for r in resource:
+        active_resources = resources if resources is not None else resource
+        if active_resources is not None:
+            if isinstance(active_resources, (list, tuple)):
+                for r in active_resources:
                     self.add_resource(r)
             else:
-                self.add_resource(resource)
-
-        if resources is not None:
-            for r in resources:
-                self.add_resource(r)
+                self.add_resource(active_resources)
 
         # Initialize MLflow experiment tracker
-        clean_exp = (mlflow_experiment or f"{self.title.lower().replace(' ', '_')}_eval").strip()
+        clean_exp = (mlflow_experiment or f"{self.name.lower().replace(' ', '_')}_eval").strip()
         self.mlflow_tracker = MLflowTracker(
             experiment_name=clean_exp,
             tracking_uri=mlflow_tracking_uri,
@@ -236,22 +226,22 @@ class BaseApp:
         self._fastapi_app: FastAPI | None = None
 
     @property
-    def name(self) -> str:
-        """Application name/title."""
-        return self.title
+    def title(self) -> str:
+        """Application title (backwards-compatible alias of name)."""
+        return self.name
 
-    @name.setter
-    def name(self, value: str) -> None:
-        self.title = value
+    @title.setter
+    def title(self, value: str) -> None:
+        self.name = value
 
     @property
     def app_name(self) -> str:
-        """Application name/title."""
-        return self.title
+        """Application name (backwards-compatible alias of name)."""
+        return self.name
 
     @app_name.setter
     def app_name(self, value: str) -> None:
-        self.title = value
+        self.name = value
 
     def add_connector(self, connector: BaseConnector) -> None:
         """Registers a connector into this application."""
@@ -665,7 +655,7 @@ class BaseApp:
             )
 
         system_prompt = (
-            f"You are {self.title}, an AI assistant with access to connected tools and knowledge.\n"
+            f"You are {self.name}, an AI assistant with access to connected tools and knowledge.\n"
             "Use the live tool results, specialized skills, and context below to answer accurately and concisely. "
             "If tools were executed in the context above, confirm their execution and report the results to the user.\n\n"
             f"=== CONTEXT ===\n{context_str}\n==============="
@@ -724,7 +714,7 @@ class BaseApp:
             await app_ref.aclose()
 
         api = FastAPI(
-            title=self.title,
+            title=self.name,
             description=self.description,
             version=self.version,
             lifespan=lifespan,
@@ -958,7 +948,7 @@ class BaseApp:
             provider = type(app_ref.model).__name__.replace("Model", "")
             m_name = getattr(app_ref.model, "model_name", "Unknown")
             return {
-                "title": app_ref.title,
+                "title": app_ref.name,
                 "version": app_ref.version,
                 "model_provider": provider,
                 "model_name": m_name,
@@ -1048,7 +1038,7 @@ class BaseApp:
 
             return {
                 "status": "online",
-                "app": app_ref.title,
+                "app": app_ref.name,
                 "version": app_ref.version,
                 "model": getattr(app_ref.model, "model_name", "unknown"),
                 "model_provider": provider_type,
@@ -1104,7 +1094,7 @@ class BaseApp:
     def to_mcp_server(self, name: str | None = None) -> Any:
         """Converts all registered connectors into an official MCP Server instance."""
         from synapse.export.mcp_exporter import MCPExporter
-        return MCPExporter.create_mcp_server(self, name=name or self.title)
+        return MCPExporter.create_mcp_server(self, name=name or self.name)
 
     def run_mcp(self, transport: str = "stdio") -> None:
         """Runs all app connectors as an official MCP server over stdio or SSE."""
@@ -1118,7 +1108,7 @@ class BaseApp:
         reload: bool = False,
     ) -> None:
         """Launches the Synapse server and interactive web inspector."""
-        print(f"\n🚀 Synapse [{self.title}] online at http://{host}:{port}")
+        print(f"\n🚀 Synapse [{self.name}] online at http://{host}:{port}")
         print(f"📊 Interactive Inspector: http://{host}:{port}/inspector")
         print(f"📖 OpenAPI Docs: http://{host}:{port}/docs\n")
         uvicorn.run(self.fastapi_app, host=host, port=port, reload=reload)
