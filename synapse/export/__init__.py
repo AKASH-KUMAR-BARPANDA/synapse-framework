@@ -5,10 +5,12 @@ from synapse.storage.graph_exporter import GraphExporter
 
 # Developer-friendly alias
 graphexporter = GraphExporter
+mcp_exporter = mcpexporter
 
 __all__ = [
     "GraphExporter",
     "MCPExporter",
     "graphexporter",
+    "mcp_exporter",
     "mcpexporter",
 ]

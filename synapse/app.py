@@ -203,7 +203,13 @@ class BaseApp:
 
         self._skills: list[Skill] = []
         if skills is not None:
-            if isinstance(skills, (list, tuple)):
+            if callable(skills) and not isinstance(skills, Skill):
+                for sk_name in ("rag-analyst", "knowledge-graph", "mcp-orchestrator"):
+                    try:
+                        self.add_skill(load_premade_skill(sk_name))
+                    except Exception:
+                        pass  # nosec B110
+            elif isinstance(skills, (list, tuple)):
                 for s in skills:
                     self.add_skill(s)
             else:
