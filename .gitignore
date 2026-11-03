@@ -32,6 +32,7 @@ token.json
 
 # Local application persistence & outputs
 data/
+mlruns/
 *.sqlite
 *.sqlite3
 *.db
