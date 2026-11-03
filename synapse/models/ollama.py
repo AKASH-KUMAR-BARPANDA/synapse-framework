@@ -34,7 +34,7 @@ class OllamaModel(BaseModelProvider):
         temperature: float = DEFAULT_TEMPERATURE,
         num_ctx: int = 4096,
         timeout: float = 60.0,
-        num_predict: int = 256,
+        num_predict: int = 1024,
     ) -> None:
         """Initializes the Ollama model provider.
 
@@ -44,7 +44,7 @@ class OllamaModel(BaseModelProvider):
             temperature: Sampling temperature. Defaults to 0.1.
             num_ctx: Context window size. Defaults to 4096.
             timeout: HTTP request timeout in seconds. Defaults to 60.0.
-            num_predict: Maximum tokens to generate per response turn. Defaults to 256.
+            num_predict: Maximum tokens to generate per response turn. Defaults to 1024.
         """
         super().__init__(model_name=model, temperature=temperature)
         self.base_url = base_url.rstrip("/")
@@ -116,6 +116,7 @@ class OllamaModel(BaseModelProvider):
         prompt: str,
         temperature: float | None = None,
         format: str | None = None,
+        num_predict: int | None = None,
     ) -> str:
         """Generates a complete non-streaming response from Ollama.
 
@@ -123,11 +124,13 @@ class OllamaModel(BaseModelProvider):
             prompt: Text prompt string.
             temperature: Optional temperature override.
             format: Optional output format (e.g. 'json').
+            num_predict: Optional token generation limit override.
 
         Returns:
             The complete response text string.
         """
         temp = self.temperature if temperature is None else temperature
+        pred = num_predict if num_predict is not None else self.num_predict
         payload: dict[str, Any] = {
             "model": self.model_name,
             "prompt": prompt,
@@ -135,7 +138,7 @@ class OllamaModel(BaseModelProvider):
             "options": {
                 "temperature": temp,
                 "num_ctx": self.num_ctx,
-                "num_predict": self.num_predict,
+                "num_predict": pred,
             },
         }
         if format:
@@ -147,9 +150,20 @@ class OllamaModel(BaseModelProvider):
                     f"{self.base_url}/api/generate",
                     json=payload,
                 )
+                if res.status_code == 501 and format:
+                    # MLX runner or models that do not support format: json
+                    payload.pop("format", None)
+                    res = await client.post(
+                        f"{self.base_url}/api/generate",
+                        json=payload,
+                    )
                 res.raise_for_status()
                 data = res.json()
-                return str(data.get("response", "")).strip()
+                resp_text = str(data.get("response", "")).strip()
+                if not resp_text and data.get("thinking"):
+                    # Fallback for reasoning/thinking models if response is empty
+                    resp_text = str(data.get("thinking", "")).strip()
+                return resp_text
         except (httpx.ConnectError, httpx.ConnectTimeout):
             return f"[Error: Cannot reach Ollama at {self.base_url}. Ensure Ollama is running.]"
         except Exception as e:
@@ -193,7 +207,15 @@ class OllamaModel(BaseModelProvider):
                 cleaned = match.group(0)
             parsed = json.loads(cleaned)
             if isinstance(parsed, dict):
-                parsed = parsed.get("triples") or parsed.get("data") or (list(parsed.values())[0] if parsed.values() and isinstance(list(parsed.values())[0], list) else [])
+                parsed = (
+                    parsed.get("triples")
+                    or parsed.get("data")
+                    or (
+                        list(parsed.values())[0]
+                        if parsed.values() and isinstance(list(parsed.values())[0], list)
+                        else []
+                    )
+                )
 
             if isinstance(parsed, list):
                 valid_triples: list[dict[str, str]] = []
@@ -204,26 +226,21 @@ class OllamaModel(BaseModelProvider):
                         and "relation" in item
                         and "target" in item
                     ):
-                        valid_triples.append({
-                            "source": str(item["source"]).strip(),
-                            "relation": (
-                                str(item["relation"])
-                                .strip()
-                                .upper()
-                                .replace(" ", "_")
-                            ),
-                            "target": str(item["target"]).strip(),
-                            "source_type": (
-                                str(item.get("source_type", "Default"))
-                                .strip()
-                                .title()
-                            ),
-                            "target_type": (
-                                str(item.get("target_type", "Default"))
-                                .strip()
-                                .title()
-                            ),
-                        })
+                        valid_triples.append(
+                            {
+                                "source": str(item["source"]).strip(),
+                                "relation": (
+                                    str(item["relation"]).strip().upper().replace(" ", "_")
+                                ),
+                                "target": str(item["target"]).strip(),
+                                "source_type": (
+                                    str(item.get("source_type", "Default")).strip().title()
+                                ),
+                                "target_type": (
+                                    str(item.get("target_type", "Default")).strip().title()
+                                ),
+                            }
+                        )
                 return valid_triples
         except Exception:
             return []
@@ -266,6 +283,73 @@ class OllamaModel(BaseModelProvider):
             valid_keys[("", name.lower())] = t
             valid_keys[(srv.lower(), f"{srv.lower()}_{name.lower()}")] = t
 
+        # 1. Primary path: Attempt native Ollama function/tool calling via /api/chat
+        try:
+            formatted_tools: list[dict[str, Any]] = []
+            for t in candidate_tools:
+                t_name = str(t.get("name") or "").strip()
+                t_desc = str(t.get("description") or "").strip()
+                t_params = (
+                    t.get("inputSchema")
+                    or t.get("parameters")
+                    or {"type": "object", "properties": {}}
+                )
+                formatted_tools.append(
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": t_name,
+                            "description": t_desc,
+                            "parameters": t_params,
+                        },
+                    }
+                )
+
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                chat_res = await client.post(
+                    f"{self.base_url}/api/chat",
+                    json={
+                        "model": self.model_name,
+                        "messages": [{"role": "user", "content": text}],
+                        "tools": formatted_tools,
+                        "stream": False,
+                        "options": {
+                            "temperature": 0.0,
+                        },
+                    },
+                )
+                if chat_res.status_code == 200:
+                    chat_data = chat_res.json()
+                    native_calls = chat_data.get("message", {}).get("tool_calls") or []
+                    if isinstance(native_calls, list) and len(native_calls) > 0:
+                        validated_native: list[dict[str, Any]] = []
+                        for call in native_calls:
+                            fn = call.get("function") or {}
+                            tl_name = str(fn.get("name") or "").strip()
+                            args = fn.get("arguments")
+                            if not isinstance(args, dict):
+                                args = {}
+                            spec = valid_keys.get(("", tl_name)) or valid_keys.get(
+                                ("", tl_name.lower())
+                            )
+                            if not spec:
+                                for (_k_srv, k_name), s_val in valid_keys.items():
+                                    if k_name.lower() == tl_name.lower():
+                                        spec = s_val
+                                        break
+                            if spec:
+                                validated_native.append(
+                                    {
+                                        "server": str(spec.get("server") or ""),
+                                        "tool": str(spec.get("name") or tl_name),
+                                        "arguments": args,
+                                    }
+                                )
+                        if validated_native:
+                            return validated_native
+        except Exception:
+            pass  # nosec B110
+
         catalog_text = "\n".join(catalog_lines)
         tool_prompt = (
             "You are a multi-tool router for a personal AI assistant.\n"
@@ -283,7 +367,12 @@ class OllamaModel(BaseModelProvider):
         )
 
         try:
-            raw_text = await self.generate(tool_prompt, temperature=0.0, format="json")
+            raw_text = await self.generate(
+                tool_prompt,
+                temperature=0.0,
+                format="json",
+                num_predict=max(self.num_predict, 1024),
+            )
             if not raw_text or raw_text.startswith("[Error:"):
                 return []
             cleaned = re.sub(
@@ -292,7 +381,9 @@ class OllamaModel(BaseModelProvider):
                 raw_text,
                 flags=re.MULTILINE,
             ).strip()
-            match = re.search(r"\{.*\}", cleaned, re.DOTALL)
+            match = re.search(r"\{\s*\"tool_calls\".*\}", cleaned, re.DOTALL) or re.search(
+                r"\{.*\}", cleaned, re.DOTALL
+            )
             if match:
                 cleaned = match.group(0)
             parsed = json.loads(cleaned)
@@ -323,11 +414,13 @@ class OllamaModel(BaseModelProvider):
                         args = item.get("arguments")
                         if not isinstance(args, dict):
                             args = {}
-                        validated.append({
-                            "server": resolved_srv,
-                            "tool": resolved_tl,
-                            "arguments": args,
-                        })
+                        validated.append(
+                            {
+                                "server": resolved_srv,
+                                "tool": resolved_tl,
+                                "arguments": args,
+                            }
+                        )
                     return validated
         except (json.JSONDecodeError, KeyError, TypeError, ValueError, httpx.HTTPError):
             pass

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "synapse-framework"
-version = "0.2.5"
+version = "0.2.6"
 description = "Modular Multi-MCP & Hybrid RAG AI Application Framework"
 readme = "README.md"
 license = "MIT"
@@ -50,9 +50,9 @@ dependencies = [
     "langchain-community>=0.4.2",
     "langchain-core>=1.6.7",
     "langchain-ollama>=1.1.0",
-    "matplotlib>=3.11.2",
+    "matplotlib>=3.8.0",
     "mcp>=2.3.0",
-    "networkx>=3.7",
+    "networkx>=3.2",
     "pydantic>=2.13.5",
     "uvicorn>=0.30.0",
 ]

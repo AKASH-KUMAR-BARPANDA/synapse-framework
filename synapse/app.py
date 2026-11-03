@@ -53,9 +53,7 @@ class ChatRequestPayload(BaseModel):
     history: list[ChatMessagePayload] | None = Field(
         default_factory=list, description="Conversation history."
     )
-    use_rag: bool = Field(
-        default=True, description="Enable Hybrid RAG and Multi-MCP tool calls."
-    )
+    use_rag: bool = Field(default=True, description="Enable Hybrid RAG and Multi-MCP tool calls.")
 
 
 class SyncRequestPayload(BaseModel):
@@ -63,7 +61,9 @@ class SyncRequestPayload(BaseModel):
 
     query: str | None = Field(default=None, description="Optional search query filter.")
     max_results: int = Field(default=5, description="Maximum items to index.")
-    extract_graph: bool = Field(default=True, description="Extract semantic knowledge graph triples.")
+    extract_graph: bool = Field(
+        default=True, description="Extract semantic knowledge graph triples."
+    )
     tool_name: str | None = Field(default=None, description="Optional explicit tool name.")
     arguments: dict[str, Any] | None = Field(default=None, description="Optional tool arguments.")
 
@@ -97,9 +97,9 @@ class BaseApp:
         self,
         name: str = "Synapse AI",
         description: str = "Multi-MCP & Hybrid RAG Framework",
-        version: str = "0.2.5",
+        version: str = "0.2.6",
         model: BaseModelProvider | None = None,
-        connectors: list[BaseConnector] | None = None,
+        connectors: list[BaseConnector] | BaseConnector | None = None,
         skills: Skill | Sequence[Skill] | str | Path | None = None,
         resources: Resource | Sequence[Resource] | str | Path | Any | None = None,
         vector_store: VectorStorage | BaseVectorDB | bool | None = None,
@@ -111,6 +111,7 @@ class BaseApp:
         *,
         title: str | None = None,
         app_name: str | None = None,
+        connector: list[BaseConnector] | BaseConnector | None = None,
         resource: Resource | Sequence[Resource] | str | Path | Any | None = None,
         persistent_storage: VectorStorage | BaseVectorDB | bool | None = None,
         Visualize_graph: BaseGraphStore | bool | None = None,
@@ -150,9 +151,7 @@ class BaseApp:
             self.vector_store = VectorStorage(database=storage_arg)
         elif storage_arg is True:
             resolved_data_dir.mkdir(parents=True, exist_ok=True)
-            self.vector_store = VectorStorage(
-                database=chromadb(path=self.data_dir / "chroma_db")
-            )
+            self.vector_store = VectorStorage(database=chromadb(path=self.data_dir / "chroma_db"))
         else:
             self.vector_store = None
 
@@ -179,8 +178,19 @@ class BaseApp:
         )
 
         self._connectors: dict[str, BaseConnector] = {}
-        for conn in connectors or []:
-            self.add_connector(conn)
+        active_connectors = connectors if connectors is not None else connector
+        if active_connectors is not None:
+            if isinstance(active_connectors, BaseConnector):
+                self.add_connector(active_connectors)
+            elif isinstance(active_connectors, (list, tuple, set)):
+                for conn in active_connectors:
+                    self.add_connector(conn)
+            else:
+                try:
+                    for conn in active_connectors:
+                        self.add_connector(conn)
+                except TypeError:
+                    self.add_connector(active_connectors)
 
         self.sync_state: dict[str, Any] = {
             "is_syncing": False,
@@ -269,18 +279,22 @@ class BaseApp:
                 collected.extend(conn._cached_schemas)
             elif hasattr(conn, "tools_dict") and isinstance(conn.tools_dict, dict):
                 for tname in conn.tools_dict.keys():
-                    collected.append({
-                        "server": conn.name,
-                        "name": tname,
-                        "connector": conn.name,
-                    })
+                    collected.append(
+                        {
+                            "server": conn.name,
+                            "name": tname,
+                            "connector": conn.name,
+                        }
+                    )
             elif getattr(conn, "default_tool", None):
-                collected.append({
-                    "server": conn.name,
-                    "name": conn.default_tool,
-                    "description": conn.description,
-                    "connector": conn.name,
-                })
+                collected.append(
+                    {
+                        "server": conn.name,
+                        "name": conn.default_tool,
+                        "description": conn.description,
+                        "connector": conn.name,
+                    }
+                )
         return collected
 
     async def list_tools(self) -> list[dict[str, Any]]:
@@ -296,18 +310,22 @@ class BaseApp:
             if isinstance(tools, list):
                 collected.extend(tools)
             elif getattr(conn, "default_tool", None):
-                collected.append({
-                    "server": conn.name,
-                    "name": conn.default_tool,
-                    "description": conn.description,
-                    "connector": conn.name,
-                })
+                collected.append(
+                    {
+                        "server": conn.name,
+                        "name": conn.default_tool,
+                        "description": conn.description,
+                        "connector": conn.name,
+                    }
+                )
         return collected
 
     def add_skill(self, skill: Skill | str | Path | list[Any] | tuple[Any, ...]) -> Any:
         """Registers a Skill or sequence of skills into this application."""
         if isinstance(skill, (list, tuple)):
             return [self.add_skill(s) for s in skill]
+        if callable(skill) and not isinstance(skill, Skill):
+            return None
         sk = skill if isinstance(skill, Skill) else makeskills(skill)
         self._skills.append(sk)
         return sk
@@ -353,7 +371,6 @@ class BaseApp:
         """Returns all registered resource collections."""
         return self.list_resources()
 
-
     def get_resource(self, name: str) -> Resource | None:
         """Retrieves a resource collection by name."""
         for r in self._resources:
@@ -378,9 +395,11 @@ class BaseApp:
 
         records: list[dict[str, Any]] = []
         if isinstance(raw_result, list):
-            records = [r for r in raw_result if isinstance(r, dict)]
+            records = [r if isinstance(r, dict) else {"result": r} for r in raw_result]
         elif isinstance(raw_result, dict):
             records = [raw_result]
+        elif raw_result is not None:
+            records = [{"result": raw_result}]
 
         formatted_items: list[str] = []
         live_chunks: list[dict[str, Any]] = []
@@ -445,7 +464,9 @@ class BaseApp:
                     self.sync_state.get("items_synced", 0), self.vector_store.count()
                 )
             else:
-                self.sync_state["items_synced"] = self.sync_state.get("items_synced", 0) + len(records)
+                self.sync_state["items_synced"] = self.sync_state.get("items_synced", 0) + len(
+                    records
+                )
         except Exception:
             self.sync_state["items_synced"] = self.sync_state.get("items_synced", 0) + len(records)
 
@@ -476,11 +497,28 @@ class BaseApp:
         """Routes a prompt to appropriate connector tools and executes them."""
         clean_msg = (user_message or "").strip().lower()
         conversational_greetings = {
-            "hi", "hello", "hey", "hola", "greetings", "good morning",
-            "good afternoon", "good evening", "how are you", "who are you",
-            "what can you do", "which model is this", "which model is getting used",
-            "what model is this", "what model is being used", "help", "thanks",
-            "thank you", "bye", "goodbye", "test", "ping",
+            "hi",
+            "hello",
+            "hey",
+            "hola",
+            "greetings",
+            "good morning",
+            "good afternoon",
+            "good evening",
+            "how are you",
+            "who are you",
+            "what can you do",
+            "which model is this",
+            "which model is getting used",
+            "what model is this",
+            "what model is being used",
+            "help",
+            "thanks",
+            "thank you",
+            "bye",
+            "goodbye",
+            "test",
+            "ping",
         }
         if clean_msg in conversational_greetings:
             return {
@@ -512,18 +550,22 @@ class BaseApp:
             for conn, tools in zip(matching_active_conns, tool_lists):
                 if isinstance(tools, list):
                     for t in tools:
-                        candidate_tools.append({
-                            "server": conn.name,
-                            "name": t.get("name", conn.default_tool),
-                            "description": t.get("description", conn.description),
-                            "inputSchema": t.get("inputSchema", {}),
-                        })
+                        candidate_tools.append(
+                            {
+                                "server": conn.name,
+                                "name": t.get("name", conn.default_tool),
+                                "description": t.get("description", conn.description),
+                                "inputSchema": t.get("inputSchema", {}),
+                            }
+                        )
                 if conn.default_tool and conn.intent_regex:
-                    fallback_calls.append({
-                        "server": conn.name,
-                        "tool": conn.default_tool,
-                        "arguments": conn.default_args_builder(user_message),
-                    })
+                    fallback_calls.append(
+                        {
+                            "server": conn.name,
+                            "tool": conn.default_tool,
+                            "arguments": conn.default_args_builder(user_message),
+                        }
+                    )
 
         unauth_notes: list[str] = []
         for c_name in unauthenticated_connectors:
@@ -574,16 +616,16 @@ class BaseApp:
                 context_sections.append(res["section_text"])
                 live_chunks.extend(res["live_chunks"])
                 live_triples.extend(res["live_triples"])
-                executed.append({
-                    "server": srv,
-                    "tool": tl,
-                    "arguments": args,
-                    "items_fetched": len(res["records"]),
-                })
-            except Exception as err:
-                context_sections.append(
-                    f"### {srv.upper()} NOTE:\nLive fetch ({tl}) error: {err}."
+                executed.append(
+                    {
+                        "server": srv,
+                        "tool": tl,
+                        "arguments": args,
+                        "items_fetched": len(res["records"]),
+                    }
                 )
+            except Exception as err:
+                context_sections.append(f"### {srv.upper()} NOTE:\nLive fetch ({tl}) error: {err}.")
 
         return {
             "tool_calls": executed,
@@ -640,9 +682,7 @@ class BaseApp:
             yield {"type": "context", "data": context_data}
 
         context_str = (
-            "\n\n".join(context_sections)
-            if context_sections
-            else "No external context required."
+            "\n\n".join(context_sections) if context_sections else "No external context required."
         )
 
         skills_section = ""
@@ -680,8 +720,12 @@ class BaseApp:
                 response="".join(full_tokens),
                 latency_ms=latency_ms,
                 model=getattr(self.model, "model_name", "custom"),
-                chunks_retrieved=len(merged_chunks) if "merged_chunks" in locals() else len(live_tool_chunks),
-                graph_triples=len(merged_triples) if "merged_triples" in locals() else len(live_tool_triples),
+                chunks_retrieved=len(merged_chunks)
+                if "merged_chunks" in locals()
+                else len(live_tool_chunks),
+                graph_triples=len(merged_triples)
+                if "merged_triples" in locals()
+                else len(live_tool_triples),
                 tools_executed=executed_tools,
             )
 
@@ -735,9 +779,7 @@ class BaseApp:
         async def chat_route(req: ChatRequestPayload):
             async def event_generator():
                 try:
-                    async for ev in app_ref.chat_stream(
-                        req.message, req.history, req.use_rag
-                    ):
+                    async for ev in app_ref.chat_stream(req.message, req.history, req.use_rag):
                         if ev["type"] == "context":
                             yield f"event: context\ndata: {json.dumps(ev['data'])}\n\n"
                         elif ev["type"] == "token":
@@ -785,7 +827,9 @@ class BaseApp:
         ):
             conn = app_ref.get_connector(connector_name)
             if not conn:
-                raise HTTPException(status_code=404, detail=f"Connector '{connector_name}' not found.")
+                raise HTTPException(
+                    status_code=404, detail=f"Connector '{connector_name}' not found."
+                )
 
             tool = req.tool_name or conn.default_tool
             if req.arguments:
@@ -817,7 +861,10 @@ class BaseApp:
                     app_ref.sync_state["is_syncing"] = False
 
             background_tasks.add_task(_bg_task)
-            return {"status": "started", "message": f"Background sync initiated for '{connector_name}'."}
+            return {
+                "status": "started",
+                "message": f"Background sync initiated for '{connector_name}'.",
+            }
 
         # ---------------- Auth Routes ----------------
         @api.get("/auth/status", tags=["Auth"])
@@ -828,7 +875,11 @@ class BaseApp:
                 if hasattr(c, "oauth") and hasattr(c.oauth, "has_credentials"):
                     has_creds = c.oauth.has_credentials()
                 elif hasattr(c, "has_credentials"):
-                    has_creds = c.has_credentials() if callable(c.has_credentials) else bool(c.has_credentials)
+                    has_creds = (
+                        c.has_credentials()
+                        if callable(c.has_credentials)
+                        else bool(c.has_credentials)
+                    )
                 else:
                     has_creds = c.is_authenticated()
 
@@ -992,6 +1043,7 @@ class BaseApp:
                 base_url = getattr(app_ref.model, "base_url", "http://localhost:11434")
                 try:
                     import httpx
+
                     async with httpx.AsyncClient(timeout=0.4) as client:
                         res = await client.get(f"{base_url}/api/tags")
                         model_status = "ready" if res.status_code == 200 else "unreachable"
@@ -1028,7 +1080,11 @@ class BaseApp:
 
             storage_status = "disabled"
             if app_ref.vector_store is not None:
-                storage_status = "ready" if (chroma_path.exists() or hasattr(app_ref.vector_store, "database")) else "initialized"
+                storage_status = (
+                    "ready"
+                    if (chroma_path.exists() or hasattr(app_ref.vector_store, "database"))
+                    else "initialized"
+                )
 
             services_dict = {
                 provider_type: model_status,
@@ -1074,7 +1130,11 @@ class BaseApp:
                 await self.model.close()
             except Exception:
                 pass  # nosec B110
-        if self.graph_store is not None and hasattr(self.graph_store, "driver") and self.graph_store.driver:
+        if (
+            self.graph_store is not None
+            and hasattr(self.graph_store, "driver")
+            and self.graph_store.driver
+        ):
             try:
                 self.graph_store.driver.close()
             except Exception:
@@ -1094,6 +1154,7 @@ class BaseApp:
     def to_mcp_server(self, name: str | None = None) -> Any:
         """Converts all registered connectors into an official MCP Server instance."""
         from synapse.export.mcp_exporter import MCPExporter
+
         return MCPExporter.create_mcp_server(self, name=name or self.name)
 
     def run_mcp(self, transport: str = "stdio") -> None:
